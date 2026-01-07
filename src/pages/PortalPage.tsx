@@ -123,16 +123,19 @@ export default function PortalPage() {
           </div>
           <h3 className="font-heading text-2xl font-bold text-foreground mb-2">Welcome Back!</h3>
           <p className="text-muted-foreground mb-4">
-            Your account is active. Access your dashboard to view resources and manage your profile.
+            Your account is active. Access your profile or dashboard.
           </p>
           <p className="text-sm text-muted-foreground mb-6">
             Role: <span className="font-semibold text-primary capitalize">{role.replace("_", " ")}</span>
           </p>
-          <div className="flex justify-center gap-4">
-            <Button onClick={redirectToDashboard}>
+          <div className="flex flex-wrap justify-center gap-4">
+            <Button asChild>
+              <Link to="/profile">View My Profile</Link>
+            </Button>
+            <Button variant="outline" onClick={redirectToDashboard}>
               Go to Dashboard
             </Button>
-            <Button variant="outline" onClick={handleSignOut}>
+            <Button variant="ghost" onClick={handleSignOut}>
               <LogOut className="w-4 h-4 mr-2" />
               Sign Out
             </Button>
@@ -210,7 +213,9 @@ export default function PortalPage() {
                   ))}
                 </ul>
                 <Button variant={portal.color === "primary" ? "default" : "outline"} className="w-full" asChild>
-                  <Link to="/login">Access Portal</Link>
+                  <Link to={user ? "/profile" : "/login"}>
+                    {user ? "View Profile" : "Access Portal"}
+                  </Link>
                 </Button>
               </div>
             ))}

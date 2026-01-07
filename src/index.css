@@ -7,28 +7,28 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 145 60% 10%;
+    --foreground: 0 0% 8%;
 
     --card: 0 0% 99%;
-    --card-foreground: 145 60% 10%;
+    --card-foreground: 0 0% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 145 60% 10%;
+    --popover-foreground: 0 0% 8%;
 
     /* Bold Emerald Green - Primary */
     --primary: 145 75% 28%;
     --primary-foreground: 0 0% 100%;
 
     /* Clean white/light gray secondary */
-    --secondary: 145 20% 96%;
-    --secondary-foreground: 145 60% 15%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 12%;
 
-    --muted: 145 15% 92%;
-    --muted-foreground: 145 20% 40%;
+    --muted: 0 0% 92%;
+    --muted-foreground: 0 0% 40%;
 
     /* Bold Gold Accent */
     --accent: 42 100% 50%;
-    --accent-foreground: 0 0% 10%;
+    --accent-foreground: 0 0% 8%;
 
     --destructive: 0 85% 55%;
     --destructive-foreground: 0 0% 100%;
@@ -37,32 +37,37 @@
     --success: 145 75% 35%;
     --success-foreground: 0 0% 100%;
 
-    --border: 145 20% 88%;
-    --input: 145 20% 90%;
+    /* Dark/Black accent for contrast */
+    --dark: 0 0% 8%;
+    --dark-foreground: 0 0% 100%;
+
+    --border: 0 0% 88%;
+    --input: 0 0% 90%;
     --ring: 145 75% 28%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 145 40% 12%;
+    --sidebar-background: 0 0% 8%;
     --sidebar-foreground: 0 0% 98%;
     --sidebar-primary: 42 100% 50%;
-    --sidebar-primary-foreground: 0 0% 10%;
-    --sidebar-accent: 145 40% 18%;
+    --sidebar-primary-foreground: 0 0% 8%;
+    --sidebar-accent: 0 0% 15%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 145 30% 20%;
+    --sidebar-border: 0 0% 20%;
     --sidebar-ring: 42 100% 50%;
 
     /* Custom tokens - Bold gradients */
     --gradient-primary: linear-gradient(135deg, hsl(145 75% 28%), hsl(145 75% 20%));
     --gradient-accent: linear-gradient(135deg, hsl(42 100% 50%), hsl(42 100% 42%));
-    --gradient-hero: linear-gradient(180deg, hsl(145 60% 10% / 0.7), hsl(145 60% 5% / 0.9));
+    --gradient-dark: linear-gradient(135deg, hsl(0 0% 8%), hsl(0 0% 15%));
+    --gradient-hero: linear-gradient(180deg, hsl(0 0% 5% / 0.8), hsl(0 0% 0% / 0.9));
     --shadow-glow: 0 0 50px hsl(145 75% 28% / 0.25);
-    --shadow-card: 0 8px 32px hsl(145 30% 30% / 0.12);
+    --shadow-card: 0 8px 32px hsl(0 0% 0% / 0.12);
     --shadow-button: 0 4px 14px hsl(145 75% 28% / 0.35);
 
     /* Surface tokens */
     --surface-elevated: 0 0% 100%;
-    --surface-sunken: 145 15% 97%;
+    --surface-sunken: 0 0% 97%;
   }
 
   .dark {

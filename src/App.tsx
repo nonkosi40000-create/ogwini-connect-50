@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import Index from "./pages/Index";
 import AboutPage from "./pages/AboutPage";
@@ -11,7 +11,7 @@ import AcademicsPage from "./pages/AcademicsPage";
 import MerchandisePage from "./pages/MerchandisePage";
 import PortalPage from "./pages/PortalPage";
 import LoginPage from "./pages/LoginPage";
-import SignupPage from "./pages/SignupPage";
+import UserProfilePage from "./pages/UserProfilePage";
 import LearnerDashboard from "./pages/dashboards/LearnerDashboard";
 import TeacherDashboard from "./pages/dashboards/TeacherDashboard";
 import GradeHeadDashboard from "./pages/dashboards/GradeHeadDashboard";
@@ -36,7 +36,8 @@ const App = () => (
             <Route path="/merchandise" element={<MerchandisePage />} />
             <Route path="/portal" element={<PortalPage />} />
             <Route path="/login" element={<LoginPage />} />
-            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/signup" element={<Navigate to="/registration" replace />} />
+            <Route path="/profile" element={<UserProfilePage />} />
             <Route path="/dashboard/learner" element={<LearnerDashboard />} />
             <Route path="/dashboard/teacher" element={<TeacherDashboard />} />
             <Route path="/dashboard/grade-head" element={<GradeHeadDashboard />} />

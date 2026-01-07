@@ -21,6 +21,10 @@ interface FormData {
   parentEmail: string;
   parentIdNumber: string;
   parentAddress: string;
+  hasDisability: string;
+  disabilityDescription: string;
+  password: string;
+  confirmPassword: string;
 }
 
 interface UploadedFiles {
@@ -65,6 +69,10 @@ export default function RegistrationPage() {
     parentEmail: "",
     parentIdNumber: "",
     parentAddress: "",
+    hasDisability: "",
+    disabilityDescription: "",
+    password: "",
+    confirmPassword: "",
   });
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles>({
@@ -280,6 +288,36 @@ export default function RegistrationPage() {
                         </div>
                       </div>
                     )}
+                    
+                    {/* Disability Question */}
+                    <div>
+                      <Label htmlFor="hasDisability">Do you have any disability? *</Label>
+                      <select 
+                        id="hasDisability" 
+                        name="hasDisability" 
+                        value={formData.hasDisability} 
+                        onChange={handleChange} 
+                        required 
+                        className="w-full h-11 px-4 rounded-lg bg-secondary border border-input text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                      >
+                        <option value="">Select an option</option>
+                        <option value="no">No</option>
+                        <option value="yes">Yes</option>
+                      </select>
+                    </div>
+                    {formData.hasDisability === "yes" && (
+                      <div>
+                        <Label htmlFor="disabilityDescription">Please describe your disability *</Label>
+                        <Input 
+                          id="disabilityDescription" 
+                          name="disabilityDescription" 
+                          value={formData.disabilityDescription} 
+                          onChange={handleChange} 
+                          required 
+                          placeholder="Describe your disability and any accommodations needed" 
+                        />
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -333,8 +371,8 @@ export default function RegistrationPage() {
                       <Input id="parentEmail" name="parentEmail" type="email" value={formData.parentEmail} onChange={handleChange} required placeholder="parent@example.com" />
                     </div>
                     <div>
-                      <Label htmlFor="parentAddress">Parent/Guardian Address</Label>
-                      <Input id="parentAddress" name="parentAddress" value={formData.parentAddress} onChange={handleChange} placeholder="If different from student" />
+                      <Label htmlFor="parentAddress">Parent/Guardian Address *</Label>
+                      <Input id="parentAddress" name="parentAddress" value={formData.parentAddress} onChange={handleChange} required placeholder="Full residential address" />
                     </div>
                     <div className="p-4 rounded-lg bg-accent/10 border border-accent/20">
                       <p className="text-sm text-muted-foreground">
