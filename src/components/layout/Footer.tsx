@@ -41,17 +41,17 @@ export function Footer() {
               Empowering learners with practical skills, academic excellence, and character development.
             </p>
             <div className="flex gap-3">
-              <a href="#" className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-secondary/80 transition-colors">
-                <Facebook className="w-4 h-4" />
+              <a href="#" className="w-10 h-10 rounded-lg bg-dark flex items-center justify-center text-dark-foreground hover:bg-primary hover:scale-110 transition-all duration-300">
+                <Facebook className="w-5 h-5" />
               </a>
-              <a href="#" className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-secondary/80 transition-colors">
-                <Twitter className="w-4 h-4" />
+              <a href="#" className="w-10 h-10 rounded-lg bg-dark flex items-center justify-center text-dark-foreground hover:bg-primary hover:scale-110 transition-all duration-300">
+                <Twitter className="w-5 h-5" />
               </a>
-              <a href="#" className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-secondary/80 transition-colors">
-                <Instagram className="w-4 h-4" />
+              <a href="#" className="w-10 h-10 rounded-lg bg-dark flex items-center justify-center text-dark-foreground hover:bg-primary hover:scale-110 transition-all duration-300">
+                <Instagram className="w-5 h-5" />
               </a>
-              <a href="#" className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center text-muted-foreground hover:text-primary hover:bg-secondary/80 transition-colors">
-                <Youtube className="w-4 h-4" />
+              <a href="#" className="w-10 h-10 rounded-lg bg-dark flex items-center justify-center text-dark-foreground hover:bg-primary hover:scale-110 transition-all duration-300">
+                <Youtube className="w-5 h-5" />
               </a>
             </div>
           </div>
@@ -105,9 +105,23 @@ export function Footer() {
         </div>
 
         <div className="border-t border-border mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Ogwini Comprehensive Technical High School. All rights reserved.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-4">
+            <p className="text-sm text-muted-foreground">
+              © {new Date().getFullYear()} Ogwini Comprehensive Technical High School. All rights reserved.
+            </p>
+            <span className="hidden sm:inline text-muted-foreground">|</span>
+            <p className="text-sm text-muted-foreground">
+              Developed by:{" "}
+              <a 
+                href="#" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-primary hover:underline font-medium"
+              >
+                Your Portfolio
+              </a>
+            </p>
+          </div>
           <div className="flex gap-6 text-sm text-muted-foreground">
             <Link to="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
             <Link to="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
