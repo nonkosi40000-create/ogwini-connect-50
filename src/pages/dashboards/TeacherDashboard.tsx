@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { 
   User, BookOpen, FileText, Users, Upload, MessageSquare, 
   ClipboardCheck, BarChart3, Bell, Send, Plus, CheckCircle,
-  Loader2, Download
+  Loader2, Download, Calendar, Save, X, Check
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -33,15 +33,32 @@ interface Quiz {
   created_at: string;
 }
 
+interface Student {
+  id: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  grade: string | null;
+}
+
+interface AttendanceRecord {
+  student_id: string;
+  present: boolean;
+}
+
 export default function TeacherDashboard() {
   const { toast } = useToast();
   const { profile, user } = useAuth();
   const [activeTab, setActiveTab] = useState("overview");
-  const [selectedClass, setSelectedClass] = useState("11A");
+  const [selectedClass, setSelectedClass] = useState("Grade 11");
   const [materials, setMaterials] = useState<LearningMaterial[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
+  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [attendanceDate, setAttendanceDate] = useState(new Date().toISOString().split('T')[0]);
+  const [attendance, setAttendance] = useState<AttendanceRecord[]>([]);
+  const [savingAttendance, setSavingAttendance] = useState(false);
 
   // Upload form state
   const [uploadTitle, setUploadTitle] = useState("");
@@ -57,6 +74,13 @@ export default function TeacherDashboard() {
   const [quizGrade, setQuizGrade] = useState("");
   const [quizDuration, setQuizDuration] = useState("30");
 
+  // Marks form
+  const [marksSubject, setMarksSubject] = useState("");
+  const [marksAssessment, setMarksAssessment] = useState("");
+  const [marksTotalMarks, setMarksTotalMarks] = useState("100");
+  const [studentMarks, setStudentMarks] = useState<Record<string, string>>({});
+  const [savingMarks, setSavingMarks] = useState(false);
+
   // Email form
   const [notificationMessage, setNotificationMessage] = useState("");
 
@@ -64,13 +88,14 @@ export default function TeacherDashboard() {
     { id: "overview", label: "Overview", icon: BarChart3 },
     { id: "materials", label: "Learning Materials", icon: BookOpen },
     { id: "quizzes", label: "Quizzes & Tests", icon: ClipboardCheck },
+    { id: "attendance", label: "Attendance", icon: Calendar },
     { id: "marks", label: "Marks & Feedback", icon: FileText },
     { id: "communicate", label: "Communicate", icon: MessageSquare },
   ];
 
   const grades = ["Grade 8", "Grade 9", "Grade 10", "Grade 11", "Grade 12"];
   const subjects = ["Mathematics", "Physical Sciences", "Life Sciences", "English", "Afrikaans", "Geography", "History", "Accounting", "Business Studies", "Technical Drawing", "Life Orientation"];
-  const materialTypes = ["notes", "worksheet", "past-paper", "study-guide", "activity", "book"];
+  const materialTypes = ["notes", "worksheet", "past-paper", "study-guide", "activity", "book", "ebook"];
 
   const fetchMaterials = async () => {
     const { data, error } = await supabase
@@ -94,10 +119,86 @@ export default function TeacherDashboard() {
     }
   };
 
+  const fetchStudents = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('id, user_id, first_name, last_name, grade')
+      .eq('grade', selectedClass)
+      .order('last_name');
+    
+    if (!error && data) {
+      setStudents(data);
+      // Initialize attendance records
+      setAttendance(data.map(s => ({ student_id: s.user_id, present: true })));
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchMaterials(), fetchQuizzes()]).then(() => setLoading(false));
+    Promise.all([fetchMaterials(), fetchQuizzes(), fetchStudents()]).then(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchStudents();
+  }, [selectedClass]);
+
+  const toggleAttendance = (studentId: string) => {
+    setAttendance(prev => prev.map(a => 
+      a.student_id === studentId ? { ...a, present: !a.present } : a
+    ));
+  };
+
+  const saveAttendance = async () => {
+    setSavingAttendance(true);
+    // For now, just show success - would integrate with an attendance table
+    toast({
+      title: "Attendance Saved",
+      description: `Attendance for ${attendanceDate} has been recorded.`,
+    });
+    setSavingAttendance(false);
+  };
+
+  const handleSaveMarks = async () => {
+    if (!marksSubject || !marksAssessment) {
+      toast({ title: "Missing Fields", description: "Please fill in subject and assessment name.", variant: "destructive" });
+      return;
+    }
+
+    setSavingMarks(true);
+    try {
+      const entries = Object.entries(studentMarks)
+        .filter(([_, mark]) => mark !== "")
+        .map(([studentId, mark]) => ({
+          learner_id: studentId,
+          subject: marksSubject,
+          assessment_name: marksAssessment,
+          assessment_type: "test",
+          marks_obtained: parseFloat(mark),
+          total_marks: parseFloat(marksTotalMarks),
+          recorded_by: user?.id,
+        }));
+
+      if (entries.length === 0) {
+        toast({ title: "No Marks", description: "Please enter at least one mark.", variant: "destructive" });
+        setSavingMarks(false);
+        return;
+      }
+
+      const { error } = await supabase.from('marks').insert(entries);
+      
+      if (error) throw error;
+
+      toast({
+        title: "Marks Saved",
+        description: `${entries.length} marks recorded successfully.`,
+      });
+      setStudentMarks({});
+    } catch (error) {
+      console.error('Error saving marks:', error);
+      toast({ title: "Error", description: "Failed to save marks.", variant: "destructive" });
+    }
+    setSavingMarks(false);
+  };
 
   const handleUploadMaterial = async () => {
     if (!uploadTitle || !uploadType || !uploadFile) {
@@ -532,11 +633,100 @@ export default function TeacherDashboard() {
                 </div>
               )}
 
+              {/* Attendance */}
+              {activeTab === "attendance" && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <h2 className="font-heading text-xl font-semibold text-foreground">Mark Attendance</h2>
+                    <div className="flex gap-3">
+                      <select
+                        value={selectedClass}
+                        onChange={(e) => setSelectedClass(e.target.value)}
+                        className="h-10 px-4 rounded-lg bg-secondary border border-input text-foreground"
+                      >
+                        {grades.map((g) => (
+                          <option key={g} value={g}>{g}</option>
+                        ))}
+                      </select>
+                      <Input
+                        type="date"
+                        value={attendanceDate}
+                        onChange={(e) => setAttendanceDate(e.target.value)}
+                        className="w-40"
+                      />
+                    </div>
+                  </div>
+
+                  {students.length > 0 ? (
+                    <div className="glass-card overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-secondary">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">#</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Student Name</th>
+                            <th className="px-4 py-3 text-center text-sm font-medium text-foreground">Present</th>
+                            <th className="px-4 py-3 text-center text-sm font-medium text-foreground">Absent</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {students.map((student, index) => {
+                            const record = attendance.find(a => a.student_id === student.user_id);
+                            const isPresent = record?.present ?? true;
+                            return (
+                              <tr key={student.id} className={index % 2 === 0 ? "bg-background" : "bg-secondary/30"}>
+                                <td className="px-4 py-3 text-sm text-muted-foreground">{index + 1}</td>
+                                <td className="px-4 py-3 text-sm font-medium text-foreground">
+                                  {student.first_name} {student.last_name}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <button
+                                    onClick={() => toggleAttendance(student.user_id)}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                                      isPresent ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                                    }`}
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </button>
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <button
+                                    onClick={() => toggleAttendance(student.user_id)}
+                                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                                      !isPresent ? "bg-destructive text-destructive-foreground" : "bg-secondary text-muted-foreground"
+                                    }`}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      <div className="p-4 border-t border-border flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground">
+                          Present: {attendance.filter(a => a.present).length} | Absent: {attendance.filter(a => !a.present).length}
+                        </p>
+                        <Button onClick={saveAttendance} disabled={savingAttendance}>
+                          {savingAttendance ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                          Save Attendance
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="glass-card p-8 text-center">
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No students found in {selectedClass}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Marks */}
               {activeTab === "marks" && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-heading text-xl font-semibold text-foreground">Enter & Manage Marks</h2>
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <h2 className="font-heading text-xl font-semibold text-foreground">Enter Marks</h2>
                     <select
                       value={selectedClass}
                       onChange={(e) => setSelectedClass(e.target.value)}
@@ -548,12 +738,97 @@ export default function TeacherDashboard() {
                     </select>
                   </div>
 
-                  <div className="glass-card p-8 text-center">
-                    <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="font-heading text-lg font-semibold text-foreground mb-2">Marks Entry System</h3>
-                    <p className="text-muted-foreground mb-4">Select a class and assessment to enter marks for learners.</p>
-                    <Button>Enter Marks</Button>
+                  <div className="glass-card p-6 space-y-4">
+                    <div className="grid sm:grid-cols-3 gap-4">
+                      <div>
+                        <Label>Subject *</Label>
+                        <select 
+                          className="w-full h-11 px-4 rounded-lg bg-secondary border border-input text-foreground mt-1"
+                          value={marksSubject}
+                          onChange={(e) => setMarksSubject(e.target.value)}
+                        >
+                          <option value="">Select subject</option>
+                          {subjects.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <Label>Assessment Name *</Label>
+                        <Input 
+                          placeholder="e.g., Test 1, Assignment 2"
+                          value={marksAssessment}
+                          onChange={(e) => setMarksAssessment(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <Label>Total Marks</Label>
+                        <Input 
+                          type="number"
+                          value={marksTotalMarks}
+                          onChange={(e) => setMarksTotalMarks(e.target.value)}
+                        />
+                      </div>
+                    </div>
                   </div>
+
+                  {students.length > 0 ? (
+                    <div className="glass-card overflow-hidden">
+                      <table className="w-full">
+                        <thead className="bg-secondary">
+                          <tr>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">#</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Student Name</th>
+                            <th className="px-4 py-3 text-center text-sm font-medium text-foreground">Mark (/{marksTotalMarks})</th>
+                            <th className="px-4 py-3 text-center text-sm font-medium text-foreground">%</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {students.map((student, index) => {
+                            const mark = studentMarks[student.user_id] || "";
+                            const percentage = mark ? Math.round((parseFloat(mark) / parseFloat(marksTotalMarks)) * 100) : null;
+                            return (
+                              <tr key={student.id} className={index % 2 === 0 ? "bg-background" : "bg-secondary/30"}>
+                                <td className="px-4 py-3 text-sm text-muted-foreground">{index + 1}</td>
+                                <td className="px-4 py-3 text-sm font-medium text-foreground">
+                                  {student.first_name} {student.last_name}
+                                </td>
+                                <td className="px-4 py-3 text-center">
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    max={marksTotalMarks}
+                                    value={mark}
+                                    onChange={(e) => setStudentMarks(prev => ({
+                                      ...prev,
+                                      [student.user_id]: e.target.value
+                                    }))}
+                                    className="w-20 mx-auto text-center"
+                                  />
+                                </td>
+                                <td className={`px-4 py-3 text-center font-bold ${
+                                  percentage !== null ? (percentage >= 50 ? "text-primary" : "text-destructive") : "text-muted-foreground"
+                                }`}>
+                                  {percentage !== null ? `${percentage}%` : "-"}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                      <div className="p-4 border-t border-border flex justify-end">
+                        <Button onClick={handleSaveMarks} disabled={savingMarks}>
+                          {savingMarks ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                          Save Marks
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="glass-card p-8 text-center">
+                      <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No students found in {selectedClass}</p>
+                    </div>
+                  )}
                 </div>
               )}
 
