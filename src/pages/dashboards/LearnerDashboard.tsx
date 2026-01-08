@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   User, BookOpen, FileText, Calendar, Trophy, Bell, 
-  Download, Clock, Play, ChevronRight, Star, Lock, Loader2
+  Download, Clock, Play, ChevronRight, Star, Loader2
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface LearningMaterial {
@@ -47,7 +48,8 @@ interface Announcement {
 }
 
 export default function LearnerDashboard() {
-  const { profile, registration } = useAuth();
+  const { profile, user } = useAuth();
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [materials, setMaterials] = useState<LearningMaterial[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
@@ -55,12 +57,15 @@ export default function LearnerDashboard() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [teacherRating, setTeacherRating] = useState(0);
+  const [ratingTeacher, setRatingTeacher] = useState("");
 
   const tabs = [
     { id: "overview", label: "Overview", icon: User },
     { id: "results", label: "Results", icon: Trophy },
     { id: "materials", label: "Learning Materials", icon: BookOpen },
     { id: "quizzes", label: "Quizzes", icon: Play },
+    { id: "timetable", label: "Timetable", icon: Calendar },
     { id: "notifications", label: "Notifications", icon: Bell },
   ];
 
