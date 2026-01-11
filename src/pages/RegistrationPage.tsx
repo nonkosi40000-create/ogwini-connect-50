@@ -32,6 +32,8 @@ interface FormData {
   // Learner-specific
   previousSchool: string;
   gradeApplying: string;
+  classApplying: string;
+  electiveSubjects: string[];
   parentName: string;
   parentPhone: string;
   parentEmail: string;
@@ -52,6 +54,15 @@ interface UploadedFiles {
   parentId: File | null;
 }
 
+// Grade structure: 8A-8H, 9A-9J, 10A-10J, 11A-11J, 12A-12J
+const gradeClasses: Record<string, string[]> = {
+  "Grade 8": ["A", "B", "C", "D", "E", "F", "G", "H"],
+  "Grade 9": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+  "Grade 10": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+  "Grade 11": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+  "Grade 12": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+};
+
 const grades = [
   { name: "Grade 8", available: true, spots: 45 },
   { name: "Grade 9", available: true, spots: 32 },
@@ -67,10 +78,41 @@ const roles = [
   { value: "principal", label: "Principal/Deputy", description: "School leadership position" },
 ];
 
-const subjects = [
-  "Mathematics", "Physical Sciences", "Life Sciences", "English", "Afrikaans", 
-  "Geography", "History", "Accounting", "Business Studies", "Technical Drawing", 
-  "Life Orientation", "Computer Applications", "Tourism", "Economics"
+// Compulsory subjects for Grade 8-9
+const grade8to9Subjects = [
+  "IsiZulu", "English (FAL)", "Afrikaans (SAL)", "Mathematics", "Natural Sciences",
+  "Life Orientation", "Dramatic Arts", "Music", "Visual Arts", "History",
+  "Geography", "Technology", "Economics", "Accounting"
+];
+
+// Additional elective subjects for Grade 10-12
+const grade10to12Electives = [
+  { name: "Physical Sciences", stream: "Science" },
+  { name: "Life Sciences", stream: "Science" },
+  { name: "Technical Mathematics", stream: "Technology" },
+  { name: "Technical Physical Sciences", stream: "Technology" },
+  { name: "E.G.D (Engineering Graphics & Design)", stream: "Technology" },
+  { name: "Mechanical Technology", stream: "Technology" },
+  { name: "Agricultural Sciences", stream: "General" },
+  { name: "Information Technology", stream: "Commerce" },
+  { name: "Computer Applications Technology", stream: "Commerce" },
+  { name: "Accounting", stream: "Commerce" },
+  { name: "Business Studies", stream: "Commerce" },
+  { name: "Economics", stream: "Commerce" },
+  { name: "Geography", stream: "General" },
+  { name: "History", stream: "General" },
+  { name: "Tourism", stream: "General" },
+];
+
+// Teacher subjects (combined list)
+const teacherSubjects = [
+  "IsiZulu", "English (FAL)", "Afrikaans (SAL)", "Mathematics", "Natural Sciences",
+  "Life Orientation", "Dramatic Arts", "Music", "Visual Arts", "History",
+  "Geography", "Technology", "Economics", "Accounting", "Physical Sciences",
+  "Life Sciences", "Technical Mathematics", "Technical Physical Sciences",
+  "E.G.D (Engineering Graphics & Design)", "Mechanical Technology",
+  "Agricultural Sciences", "Information Technology", "Computer Applications Technology",
+  "Business Studies", "Tourism"
 ];
 
 const bankingDetails = {
@@ -87,7 +129,7 @@ export default function RegistrationPage() {
   const [step, setStep] = useState(0); // 0 = role selection
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [formData, setFormData] = useState<FormData>({
+const [formData, setFormData] = useState<FormData>({
     role: "",
     firstName: "",
     lastName: "",
@@ -105,6 +147,8 @@ export default function RegistrationPage() {
     confirmPassword: "",
     previousSchool: "",
     gradeApplying: "",
+    classApplying: "",
+    electiveSubjects: [],
     parentName: "",
     parentPhone: "",
     parentEmail: "",
@@ -143,8 +187,14 @@ export default function RegistrationPage() {
     return age;
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    // Reset class when grade changes
+    if (name === 'gradeApplying') {
+      setFormData({ ...formData, [name]: value, classApplying: '', electiveSubjects: [] });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
   const handleSubjectChange = (subject: string) => {
@@ -155,6 +205,19 @@ export default function RegistrationPage() {
       setFormData({ ...formData, subjects: [...current, subject] });
     }
   };
+
+  const handleElectiveChange = (subject: string) => {
+    const current = formData.electiveSubjects;
+    if (current.includes(subject)) {
+      setFormData({ ...formData, electiveSubjects: current.filter(s => s !== subject) });
+    } else if (current.length < 4) {
+      setFormData({ ...formData, electiveSubjects: [...current, subject] });
+    } else {
+      toast({ title: "Maximum Subjects", description: "You can only select 4 elective subjects.", variant: "destructive" });
+    }
+  };
+
+  const isGrade10Plus = ["Grade 10", "Grade 11", "Grade 12"].includes(formData.gradeApplying);
 
   const handleFileUpload = (field: keyof UploadedFiles) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
@@ -301,6 +364,14 @@ export default function RegistrationPage() {
       }
       if (isLearner && formData.gradeApplying && !selectedGrade?.available) {
         toast({ title: "Grade Full", description: "Selected grade is full.", variant: "destructive" });
+        return;
+      }
+      if (isLearner && !formData.classApplying) {
+        toast({ title: "Select Class", description: "Please select your class.", variant: "destructive" });
+        return;
+      }
+      if (isLearner && isGrade10Plus && formData.electiveSubjects.length !== 4) {
+        toast({ title: "Select Subjects", description: "Please select exactly 4 elective subjects.", variant: "destructive" });
         return;
       }
     }
@@ -458,17 +529,67 @@ export default function RegistrationPage() {
                     </div>
                     
                     {isLearner && (
-                      <div>
-                        <Label htmlFor="gradeApplying">Grade Applying For *</Label>
-                        <select id="gradeApplying" name="gradeApplying" value={formData.gradeApplying} onChange={handleChange} required className="w-full h-11 px-4 rounded-lg bg-secondary border border-input text-foreground">
-                          <option value="">Select grade</option>
-                          {grades.map((g) => (
-                            <option key={g.name} value={g.name} disabled={!g.available}>
-                              {g.name} {g.available ? `(${g.spots} spots)` : "(FULL)"}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      <>
+                        <div className="grid sm:grid-cols-2 gap-4">
+                          <div>
+                            <Label htmlFor="gradeApplying">Grade Applying For *</Label>
+                            <select id="gradeApplying" name="gradeApplying" value={formData.gradeApplying} onChange={handleChange} required className="w-full h-11 px-4 rounded-lg bg-secondary border border-input text-foreground">
+                              <option value="">Select grade</option>
+                              {grades.map((g) => (
+                                <option key={g.name} value={g.name} disabled={!g.available}>
+                                  {g.name} {g.available ? `(${g.spots} spots)` : "(FULL)"}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          {formData.gradeApplying && (
+                            <div>
+                              <Label htmlFor="classApplying">Class *</Label>
+                              <select id="classApplying" name="classApplying" value={formData.classApplying} onChange={handleChange} required className="w-full h-11 px-4 rounded-lg bg-secondary border border-input text-foreground">
+                                <option value="">Select class</option>
+                                {gradeClasses[formData.gradeApplying]?.map((cls) => (
+                                  <option key={cls} value={cls}>
+                                    {formData.gradeApplying} {cls}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Elective subjects for Grade 10+ */}
+                        {isGrade10Plus && (
+                          <div className="border border-primary/20 rounded-lg p-4 bg-primary/5">
+                            <Label className="text-base font-semibold text-foreground">Choose 4 Elective Subjects *</Label>
+                            <p className="text-sm text-muted-foreground mb-3">
+                              Selected: {formData.electiveSubjects.length}/4 subjects
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {grade10to12Electives.map((subject) => (
+                                <label
+                                  key={subject.name}
+                                  className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-all ${
+                                    formData.electiveSubjects.includes(subject.name)
+                                      ? "border-primary bg-primary/10"
+                                      : "border-border hover:bg-secondary/50"
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={formData.electiveSubjects.includes(subject.name)}
+                                    onChange={() => handleElectiveChange(subject.name)}
+                                    className="rounded border-input"
+                                  />
+                                  <div>
+                                    <span className="text-sm text-foreground">{subject.name}</span>
+                                    <span className="text-xs text-muted-foreground ml-2">({subject.stream})</span>
+                                  </div>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
 
                     <div>
@@ -596,7 +717,7 @@ export default function RegistrationPage() {
                     <div>
                       <Label>Subjects You Will Teach *</Label>
                       <div className="grid grid-cols-2 gap-2 mt-2">
-                        {subjects.map((subject) => (
+                        {teacherSubjects.map((subject) => (
                           <label key={subject} className="flex items-center gap-2 p-2 rounded-lg border border-border cursor-pointer hover:bg-secondary/50">
                             <input
                               type="checkbox"

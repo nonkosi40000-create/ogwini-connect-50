@@ -4,13 +4,35 @@ import { Button } from "@/components/ui/button";
 import { BookOpen, FileText, Calendar, Download, Clock, Search, GraduationCap, Calculator, FlaskConical, Globe, Cpu, Wrench } from "lucide-react";
 import schoolLab from "@/assets/school-science-lab.jpg";
 
-const subjects = [
+// Grade 8-9 subjects
+const grade8to9Subjects = [
+  { name: "IsiZulu", icon: BookOpen },
+  { name: "English (FAL)", icon: BookOpen },
+  { name: "Afrikaans (SAL)", icon: BookOpen },
   { name: "Mathematics", icon: Calculator },
-  { name: "Physical Science", icon: FlaskConical },
-  { name: "Life Sciences", icon: Globe },
-  { name: "Technical Drawing", icon: Cpu },
-  { name: "Electrical Technology", icon: Wrench },
-  { name: "Engineering Graphics", icon: FileText },
+  { name: "Natural Sciences", icon: FlaskConical },
+  { name: "Life Orientation", icon: GraduationCap },
+  { name: "Dramatic Arts", icon: Globe },
+  { name: "Music", icon: Globe },
+  { name: "Visual Arts", icon: Globe },
+  { name: "History", icon: Globe },
+  { name: "Geography", icon: Globe },
+  { name: "Technology", icon: Cpu },
+  { name: "Economics", icon: Calculator },
+  { name: "Accounting", icon: Calculator },
+];
+
+// Grade 10-12 elective subjects
+const grade10to12Subjects = [
+  { name: "Physical Sciences", icon: FlaskConical },
+  { name: "Life Sciences", icon: FlaskConical },
+  { name: "Technical Mathematics", icon: Calculator },
+  { name: "Technical Physical Sciences", icon: FlaskConical },
+  { name: "E.G.D", icon: FileText },
+  { name: "Mechanical Technology", icon: Wrench },
+  { name: "Agricultural Sciences", icon: Globe },
+  { name: "Information Technology", icon: Cpu },
+  { name: "Computer Applications Technology", icon: Cpu },
 ];
 
 const pastPapers = [
@@ -71,14 +93,26 @@ export default function AcademicsPage() {
       {/* Subjects */}
       <section className="py-12 lg:py-16 bg-background">
         <div className="container mx-auto px-4">
-          <h2 className="font-heading text-2xl font-bold text-foreground mb-6">Our Subjects</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {subjects.map((subject) => (
-              <div key={subject.name} className="glass-card p-4 text-center hover:border-primary/50 transition-colors">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-3">
-                  <subject.icon className="w-6 h-6 text-primary" />
+          <h2 className="font-heading text-2xl font-bold text-foreground mb-6">Grade 8-9 Subjects</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-3">
+            {grade8to9Subjects.map((subject) => (
+              <div key={subject.name} className="glass-card p-3 text-center hover:border-primary/50 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                  <subject.icon className="w-5 h-5 text-primary" />
                 </div>
-                <p className="text-sm font-medium text-foreground">{subject.name}</p>
+                <p className="text-xs font-medium text-foreground">{subject.name}</p>
+              </div>
+            ))}
+          </div>
+
+          <h2 className="font-heading text-2xl font-bold text-foreground mt-10 mb-6">Grade 10-12 Elective Subjects</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {grade10to12Subjects.map((subject) => (
+              <div key={subject.name} className="glass-card p-3 text-center hover:border-primary/50 transition-colors">
+                <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center mx-auto mb-2">
+                  <subject.icon className="w-5 h-5 text-accent" />
+                </div>
+                <p className="text-xs font-medium text-foreground">{subject.name}</p>
               </div>
             ))}
           </div>
