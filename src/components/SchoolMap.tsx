@@ -114,7 +114,7 @@ const SchoolMap: React.FC<SchoolMapProps> = ({ className = "" }) => {
             <div className="flex gap-2">
               <Input
                 type="text"
-                placeholder="pk.eyJ1IjoieW91ci10b2tlbi4uLiI
+                placeholder="pk.eyJ1IjoieW91ci10b2tlbi4uLiI"
                 value={mapboxToken}
                 onChange={(e) => setMapboxToken(e.target.value)}
                 className="flex-1"

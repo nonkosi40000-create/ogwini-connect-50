@@ -2,9 +2,7 @@ import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X, LogIn, UserPlus } from "lucide-react";
 import { useState } from "react";
-
-// School logo - replace this path with your uploaded logo
-const schoolLogo = "/placeholder.svg";
+import schoolLogo from "@/assets/school-logo.png";
 
 const navLinks = [
   { name: "Home", path: "/" },
@@ -35,6 +33,7 @@ export function Navbar() {
             <div className="hidden sm:block">
               <span className="font-heading font-bold text-lg text-white">Ogwini</span>
               <p className="text-xs text-white/70">Technical High School</p>
+              <p className="text-[10px] text-primary font-semibold italic tracking-wide">DEEDS NOT WORDS</p>
             </div>
           </Link>
 
