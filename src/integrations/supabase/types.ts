@@ -209,6 +209,48 @@ export type Database = {
         }
         Relationships: []
       }
+      past_papers: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_url: string
+          grade: string
+          id: string
+          subject: string
+          term: string | null
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_url: string
+          grade: string
+          id?: string
+          subject: string
+          term?: string | null
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+          year: number
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_url?: string
+          grade?: string
+          id?: string
+          subject?: string
+          term?: string | null
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
+          year?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           address: string | null

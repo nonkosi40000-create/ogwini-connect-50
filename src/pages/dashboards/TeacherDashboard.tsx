@@ -11,6 +11,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { PastPapers } from "@/components/PastPapers";
 
 interface LearningMaterial {
   id: string;
@@ -87,6 +88,7 @@ export default function TeacherDashboard() {
   const tabs = [
     { id: "overview", label: "Overview", icon: BarChart3 },
     { id: "materials", label: "Learning Materials", icon: BookOpen },
+    { id: "pastpapers", label: "Past Papers", icon: FileText },
     { id: "quizzes", label: "Quizzes & Tests", icon: ClipboardCheck },
     { id: "attendance", label: "Attendance", icon: Calendar },
     { id: "marks", label: "Marks & Feedback", icon: FileText },
@@ -544,6 +546,14 @@ export default function TeacherDashboard() {
                       )}
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Past Papers */}
+              {activeTab === "pastpapers" && (
+                <div className="space-y-6">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">Past Papers Management</h2>
+                  <PastPapers showUpload={true} />
                 </div>
               )}
 

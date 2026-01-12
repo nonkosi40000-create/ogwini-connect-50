@@ -1,6 +1,7 @@
 import { Layout } from "@/components/layout/Layout";
 import { Award, Target, Eye, History, Users, Lightbulb } from "lucide-react";
 import schoolSports from "@/assets/school-sports.jpg";
+import SchoolMap from "@/components/SchoolMap";
 
 const values = [
   { icon: Award, title: "Excellence", description: "Striving for the highest standards in all we do." },
@@ -115,6 +116,14 @@ export default function AboutPage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* School Location Map */}
+      <section className="py-16 lg:py-20 bg-secondary/30">
+        <div className="container mx-auto px-4">
+          <h2 className="font-heading text-3xl font-bold text-foreground text-center mb-8">Find Us</h2>
+          <SchoolMap className="max-w-4xl mx-auto" />
         </div>
       </section>
     </Layout>

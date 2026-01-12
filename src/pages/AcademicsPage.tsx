@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
-import { BookOpen, FileText, Calendar, Download, Clock, Search, GraduationCap, Calculator, FlaskConical, Globe, Cpu, Wrench } from "lucide-react";
+import { BookOpen, FileText, Calendar, Download, Search, GraduationCap, Calculator, FlaskConical, Globe, Cpu, Wrench } from "lucide-react";
 import schoolLab from "@/assets/school-science-lab.jpg";
+import { PastPapers } from "@/components/PastPapers";
 
 // Grade 8-9 subjects
 const grade8to9Subjects = [
@@ -35,15 +36,6 @@ const grade10to12Subjects = [
   { name: "Computer Applications Technology", icon: Cpu },
 ];
 
-const pastPapers = [
-  { subject: "Mathematics", grade: "Grade 12", year: "2024", type: "November Exam" },
-  { subject: "Physical Science", grade: "Grade 12", year: "2024", type: "November Exam" },
-  { subject: "Mathematics", grade: "Grade 11", year: "2024", type: "November Exam" },
-  { subject: "Technical Drawing", grade: "Grade 12", year: "2024", type: "November Exam" },
-  { subject: "Mathematics", grade: "Grade 12", year: "2023", type: "November Exam" },
-  { subject: "Life Sciences", grade: "Grade 12", year: "2023", type: "November Exam" },
-];
-
 const timetables = [
   { title: "Grade 8 Timetable", term: "Term 1 2025" },
   { title: "Grade 9 Timetable", term: "Term 1 2025" },
@@ -54,14 +46,7 @@ const timetables = [
 ];
 
 export default function AcademicsPage() {
-  const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState<"papers" | "timetables">("papers");
-
-  const filteredPapers = pastPapers.filter(
-    (paper) =>
-      paper.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      paper.grade.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <Layout>
@@ -149,41 +134,7 @@ export default function AcademicsPage() {
           </div>
 
           {activeTab === "papers" && (
-            <>
-              {/* Search */}
-              <div className="relative max-w-md mb-6">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  type="text"
-                  placeholder="Search by subject or grade..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full h-11 pl-11 pr-4 rounded-xl bg-secondary border border-input text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              {/* Papers Grid */}
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredPapers.map((paper, index) => (
-                  <div key={index} className="glass-card p-5 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                        <FileText className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium text-foreground">{paper.subject}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {paper.grade} • {paper.year}
-                        </p>
-                      </div>
-                    </div>
-                    <Button size="sm" variant="ghost">
-                      <Download className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            </>
+            <PastPapers />
           )}
 
           {activeTab === "timetables" && (

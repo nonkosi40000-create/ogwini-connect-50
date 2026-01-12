@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Index from "./pages/Index";
 import AboutPage from "./pages/AboutPage";
 import RegistrationPage from "./pages/RegistrationPage";
@@ -37,12 +38,38 @@ const App = () => (
             <Route path="/portal" element={<PortalPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<Navigate to="/registration" replace />} />
-            <Route path="/profile" element={<UserProfilePage />} />
-            <Route path="/dashboard/learner" element={<LearnerDashboard />} />
-            <Route path="/dashboard/teacher" element={<TeacherDashboard />} />
-            <Route path="/dashboard/grade-head" element={<GradeHeadDashboard />} />
-            <Route path="/dashboard/principal" element={<PrincipalDashboard />} />
-            <Route path="/dashboard/admin" element={<AdminDashboard />} />
+            
+            {/* Protected Routes */}
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <UserProfilePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/learner" element={
+              <ProtectedRoute allowedRoles={["learner"]}>
+                <LearnerDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/teacher" element={
+              <ProtectedRoute allowedRoles={["teacher"]}>
+                <TeacherDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/grade-head" element={
+              <ProtectedRoute allowedRoles={["grade_head"]}>
+                <GradeHeadDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/principal" element={
+              <ProtectedRoute allowedRoles={["principal"]}>
+                <PrincipalDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/admin" element={
+              <ProtectedRoute allowedRoles={["admin"]}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
