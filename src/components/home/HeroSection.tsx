@@ -143,7 +143,7 @@ export function FeaturesSection() {
   ];
 
   return (
-    <section className="py-20 lg:py-28 bg-secondary/30">
+    <section className="py-20 lg:py-28 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center max-w-2xl mx-auto mb-12 lg:mb-16">
           <h2 className="font-heading text-3xl lg:text-4xl font-bold text-foreground mb-4">
@@ -208,7 +208,7 @@ export function StatsSection() {
 
 export function CTASection() {
   return (
-    <section className="py-20 lg:py-28 bg-background">
+    <section className="py-20 lg:py-28 bg-secondary/20">
       <div className="container mx-auto px-4">
         <div className="max-w-4xl mx-auto text-center bg-card border border-border rounded-2xl p-8 lg:p-12 shadow-lg">
           <h2 className="font-heading text-3xl lg:text-4xl font-bold text-foreground mb-4">
