@@ -91,7 +91,7 @@ export default function PortalPage() {
               <CheckCircle className="w-8 h-8 text-primary" />
             </div>
             <h3 className="font-heading text-2xl font-bold text-foreground mb-2">
-              Welcome, {profile?.first_name}!
+              Welcome, {profile?.first_name ?? (user?.user_metadata as any)?.first_name ?? "there"}!
             </h3>
             <p className="text-muted-foreground mb-2">
               Your account is active and ready to use.

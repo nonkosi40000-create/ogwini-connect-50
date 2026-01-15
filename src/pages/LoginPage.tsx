@@ -18,8 +18,8 @@ export default function LoginPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Wait for both user to be loaded AND role/approval data to be fetched
-    if (!loading && user && (isApproved || role !== null)) {
+    // If signed in, always send the user to the correct dashboard (never the portal)
+    if (!loading && user) {
       redirectToDashboard();
     }
   }, [user, loading, isApproved, role]);

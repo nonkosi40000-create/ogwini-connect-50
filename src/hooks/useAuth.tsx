@@ -160,7 +160,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -173,6 +173,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       return { error };
     }
+
+    const firstName = (data.user?.user_metadata as any)?.first_name as string | undefined;
+    const lastName = (data.user?.user_metadata as any)?.last_name as string | undefined;
+    const displayName = [firstName, lastName].filter(Boolean).join(" ") || data.user?.email;
+
+    toast({
+      title: `Welcome ${displayName ?? "back"}!`,
+      description: "Signing you in and loading your dashboard...",
+    });
 
     return { error: null };
   };
@@ -227,9 +236,9 @@ export function useRoleRedirect() {
       return;
     }
 
-    // If not approved, go to portal to see status
-    if (!isApproved) {
-      navigate("/portal");
+    // If not approved yet (or role not assigned yet), always go to the pending dashboard
+    if (!isApproved || !role) {
+      navigate("/dashboard/pending");
       return;
     }
 
@@ -251,7 +260,7 @@ export function useRoleRedirect() {
         navigate("/dashboard/admin");
         break;
       default:
-        navigate("/portal");
+        navigate("/dashboard/pending");
     }
   };
 
