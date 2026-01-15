@@ -14,14 +14,15 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { signIn, user, loading } = useAuth();
-  const { redirectToDashboard, isApproved } = useRoleRedirect();
+  const { redirectToDashboard, isApproved, role } = useRoleRedirect();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && user) {
+    // Wait for both user to be loaded AND role/approval data to be fetched
+    if (!loading && user && (isApproved || role !== null)) {
       redirectToDashboard();
     }
-  }, [user, loading, isApproved]);
+  }, [user, loading, isApproved, role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
