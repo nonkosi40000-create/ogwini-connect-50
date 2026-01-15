@@ -2,13 +2,38 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
+type AppRole = "learner" | "teacher" | "grade_head" | "principal" | "admin";
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  allowedRoles?: string[];
+  allowedRoles?: AppRole[];
+  /** When true, user must be approved (role assigned) to access this route. */
+  requireApproval?: boolean;
 }
 
-export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
-  const { user, loading, role, isApproved } = useAuth();
+const roleToDashboardPath = (role: AppRole) => {
+  switch (role) {
+    case "learner":
+      return "/dashboard/learner";
+    case "teacher":
+      return "/dashboard/teacher";
+    case "grade_head":
+      return "/dashboard/grade-head";
+    case "principal":
+      return "/dashboard/principal";
+    case "admin":
+      return "/dashboard/admin";
+    default:
+      return "/dashboard/pending";
+  }
+};
+
+export function ProtectedRoute({
+  children,
+  allowedRoles,
+  requireApproval = true,
+}: ProtectedRouteProps) {
+  const { user, loading, role, isApproved, registration } = useAuth();
 
   if (loading) {
     return (
@@ -26,15 +51,24 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
     return <Navigate to="/login" replace />;
   }
 
-  // Not approved
-  if (!isApproved) {
-    return <Navigate to="/portal" replace />;
+  // Approval gate (used for role dashboards)
+  if (requireApproval && !isApproved) {
+    return <Navigate to="/dashboard/pending" replace />;
   }
 
+  const effectiveRole = (role ?? registration?.role ?? null) as AppRole | null;
+
   // Check role if specified
-  if (allowedRoles && role && !allowedRoles.includes(role)) {
-    return <Navigate to="/portal" replace />;
+  if (allowedRoles) {
+    if (!effectiveRole) {
+      return <Navigate to="/dashboard/pending" replace />;
+    }
+
+    if (!allowedRoles.includes(effectiveRole)) {
+      return <Navigate to={roleToDashboardPath(effectiveRole)} replace />;
+    }
   }
 
   return <>{children}</>;
 }
+

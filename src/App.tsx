@@ -18,6 +18,7 @@ import TeacherDashboard from "./pages/dashboards/TeacherDashboard";
 import GradeHeadDashboard from "./pages/dashboards/GradeHeadDashboard";
 import PrincipalDashboard from "./pages/dashboards/PrincipalDashboard";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
+import PendingDashboard from "./pages/dashboards/PendingDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,10 +42,20 @@ const App = () => (
             
             {/* Protected Routes */}
             <Route path="/profile" element={
-              <ProtectedRoute>
+              <ProtectedRoute requireApproval={false}>
                 <UserProfilePage />
               </ProtectedRoute>
             } />
+
+            <Route
+              path="/dashboard/pending"
+              element={
+                <ProtectedRoute requireApproval={false}>
+                  <PendingDashboard />
+                </ProtectedRoute>
+              }
+            />
+
             <Route path="/dashboard/learner" element={
               <ProtectedRoute allowedRoles={["learner"]}>
                 <LearnerDashboard />
