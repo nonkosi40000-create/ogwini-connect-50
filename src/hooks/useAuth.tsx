@@ -218,15 +218,22 @@ export function useAuth() {
 
 // Helper hook to redirect based on role
 export function useRoleRedirect() {
-  const { role, isApproved, loading, registration } = useAuth();
+  const { role, isApproved, loading, registration, user } = useAuth();
   const navigate = useNavigate();
 
   const redirectToDashboard = () => {
+    // If still loading or no user data, don't redirect yet
+    if (loading || !user) {
+      return;
+    }
+
+    // If not approved, go to portal to see status
     if (!isApproved) {
       navigate("/portal");
       return;
     }
 
+    // Redirect based on role
     switch (role) {
       case "learner":
         navigate("/dashboard/learner");
