@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
@@ -27,6 +27,8 @@ interface Registration {
   id: string;
   status: string;
   role: AppRole;
+  first_name: string;
+  last_name: string;
 }
 
 interface AuthContextType {
@@ -36,14 +38,16 @@ interface AuthContextType {
   role: AppRole | null;
   registration: Registration | null;
   loading: boolean;
+  dataLoaded: boolean;
   signUp: (
     email: string,
     password: string,
     metadata: { first_name: string; last_name: string; role: AppRole; phone?: string }
   ) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  signIn: (email: string, password: string) => Promise<{ error: Error | null; user?: User | null }>;
   signOut: () => Promise<void>;
   isApproved: boolean;
+  refreshUserData: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -55,42 +59,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [registration, setRegistration] = useState<Registration | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dataLoaded, setDataLoaded] = useState(false);
   const { toast } = useToast();
 
-  const fetchUserData = async (userId: string) => {
-    // Fetch profile
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
+  const fetchUserData = useCallback(async (userId: string) => {
+    setDataLoaded(false);
+    
+    try {
+      // Fetch all data in parallel
+      const [profileRes, roleRes, regRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
+        supabase.from("user_roles").select("role").eq("user_id", userId).maybeSingle(),
+        supabase.from("registrations").select("id, status, role, first_name, last_name").eq("user_id", userId).maybeSingle()
+      ]);
 
-    if (profileData) {
-      setProfile(profileData as Profile);
+      if (profileRes.data) {
+        setProfile(profileRes.data as Profile);
+      }
+
+      if (roleRes.data) {
+        setRole(roleRes.data.role as AppRole);
+      } else {
+        setRole(null);
+      }
+
+      if (regRes.data) {
+        setRegistration(regRes.data as Registration);
+      }
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setDataLoaded(true);
     }
+  }, []);
 
-    // Fetch role
-    const { data: roleData } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (roleData) {
-      setRole(roleData.role as AppRole);
+  const refreshUserData = useCallback(async () => {
+    if (user) {
+      await fetchUserData(user.id);
     }
-
-    // Fetch registration status
-    const { data: regData } = await supabase
-      .from("registrations")
-      .select("id, status, role")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (regData) {
-      setRegistration(regData as Registration);
-    }
-  };
+  }, [user, fetchUserData]);
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -99,17 +106,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session);
         setUser(session?.user ?? null);
 
-        // Defer data fetching
-        if (session?.user) {
-          setTimeout(() => {
-            fetchUserData(session.user.id);
-          }, 0);
-        } else {
+        if (!session?.user) {
           setProfile(null);
           setRole(null);
           setRegistration(null);
+          setDataLoaded(false);
+          setLoading(false);
         }
-        setLoading(false);
       }
     );
 
@@ -118,13 +121,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserData(session.user.id);
+        fetchUserData(session.user.id).finally(() => {
+          setLoading(false);
+        });
+      } else {
+        setLoading(false);
       }
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchUserData]);
 
   const signUp = async (
     email: string,
@@ -171,19 +177,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: error.message,
         variant: "destructive",
       });
-      return { error };
+      return { error, user: null };
     }
 
-    const firstName = (data.user?.user_metadata as any)?.first_name as string | undefined;
-    const lastName = (data.user?.user_metadata as any)?.last_name as string | undefined;
-    const displayName = [firstName, lastName].filter(Boolean).join(" ") || data.user?.email;
+    // Fetch user data immediately after sign in
+    if (data.user) {
+      await fetchUserData(data.user.id);
+    }
 
-    toast({
-      title: `Welcome ${displayName ?? "back"}!`,
-      description: "Signing you in and loading your dashboard...",
-    });
-
-    return { error: null };
+    return { error: null, user: data.user };
   };
 
   const signOut = async () => {
@@ -193,6 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setRole(null);
     setRegistration(null);
+    setDataLoaded(false);
   };
 
   const isApproved = registration?.status === "approved" && role !== null;
@@ -206,10 +209,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         role,
         registration,
         loading,
+        dataLoaded,
         signUp,
         signIn,
         signOut,
         isApproved,
+        refreshUserData,
       }}
     >
       {children}
@@ -227,19 +232,29 @@ export function useAuth() {
 
 // Helper hook to redirect based on role
 export function useRoleRedirect() {
-  const { role, isApproved, loading, registration, user } = useAuth();
+  const { role, isApproved, loading, registration, user, dataLoaded } = useAuth();
   const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const redirectToDashboard = () => {
-    // If still loading or no user data, don't redirect yet
-    if (loading || !user) {
-      return;
+  const redirectToDashboard = useCallback((showWelcome = false) => {
+    // Wait for data to be loaded
+    if (!dataLoaded) {
+      return false;
+    }
+
+    // Show welcome message if requested
+    if (showWelcome && registration) {
+      const displayName = [registration.first_name, registration.last_name].filter(Boolean).join(" ");
+      toast({
+        title: `Welcome ${displayName || "back"}!`,
+        description: "Signing you in and loading your dashboard...",
+      });
     }
 
     // If not approved yet (or role not assigned yet), always go to the pending dashboard
     if (!isApproved || !role) {
       navigate("/dashboard/pending");
-      return;
+      return true;
     }
 
     // Redirect based on role
@@ -262,7 +277,8 @@ export function useRoleRedirect() {
       default:
         navigate("/dashboard/pending");
     }
-  };
+    return true;
+  }, [role, isApproved, dataLoaded, registration, navigate, toast]);
 
-  return { redirectToDashboard, role, isApproved, loading, registration };
+  return { redirectToDashboard, role, isApproved, loading, registration, dataLoaded };
 }

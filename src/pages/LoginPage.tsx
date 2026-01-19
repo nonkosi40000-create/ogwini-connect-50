@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Mail, Lock, Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { GraduationCap, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth, useRoleRedirect } from "@/hooks/useAuth";
 import schoolClassroom from "@/assets/school-classroom.jpg";
 
@@ -14,28 +14,41 @@ export default function LoginPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { signIn, user, loading } = useAuth();
-  const { redirectToDashboard, isApproved, role } = useRoleRedirect();
+  const { redirectToDashboard, dataLoaded } = useRoleRedirect();
   const navigate = useNavigate();
 
+  // Redirect if already logged in and data is loaded
   useEffect(() => {
-    // If signed in, always send the user to the correct dashboard (never the portal)
-    if (!loading && user) {
+    if (!loading && user && dataLoaded) {
       redirectToDashboard();
     }
-  }, [user, loading, isApproved, role]);
+  }, [user, loading, dataLoaded, redirectToDashboard]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    const { error } = await signIn(email, password);
+    const { error, user: signedInUser } = await signIn(email, password);
     
-    if (!error) {
-      // Redirect will happen via useEffect
+    if (!error && signedInUser) {
+      // Data is already loaded in signIn, redirect with welcome message
+      redirectToDashboard(true);
     }
     
     setIsSubmitting(false);
   };
+
+  // Show loading if checking existing session
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -141,7 +154,14 @@ export default function LoginPage() {
             </div>
 
             <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
-              {isSubmitting ? "Signing In..." : "Sign In"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Signing In...
+                </>
+              ) : (
+                "Sign In"
+              )}
             </Button>
           </form>
 
