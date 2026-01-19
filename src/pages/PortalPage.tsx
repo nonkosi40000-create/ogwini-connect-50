@@ -100,7 +100,7 @@ export default function PortalPage() {
               Role: <span className="font-semibold text-primary capitalize">{role.replace("_", " ")}</span>
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button onClick={redirectToDashboard}>
+              <Button onClick={() => redirectToDashboard()}>
                 Go to Dashboard
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
@@ -220,7 +220,7 @@ export default function PortalPage() {
                   Quizzes & tests
                 </li>
               </ul>
-              <Button variant="outline" className="w-full" onClick={redirectToDashboard}>
+              <Button variant="outline" className="w-full" onClick={() => redirectToDashboard()}>
                 Go to Dashboard
               </Button>
             </div>
