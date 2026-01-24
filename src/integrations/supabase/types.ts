@@ -50,6 +50,100 @@ export type Database = {
         }
         Relationships: []
       }
+      curriculum_policies: {
+        Row: {
+          created_at: string
+          created_by: string
+          department_id: string
+          description: string | null
+          id: string
+          policy_document_url: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          department_id: string
+          description?: string | null
+          id?: string
+          policy_document_url?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          department_id?: string
+          description?: string | null
+          id?: string
+          policy_document_url?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "curriculum_policies_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      department_heads: {
+        Row: {
+          assigned_at: string
+          department_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          department_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          department_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_heads_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: true
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      departments: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
       email_logs: {
         Row: {
           body: string
@@ -507,6 +601,38 @@ export type Database = {
         }
         Relationships: []
       }
+      subjects: {
+        Row: {
+          code: string
+          created_at: string
+          department_id: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          department_id?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subjects_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -543,7 +669,13 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "learner" | "teacher" | "grade_head" | "principal" | "admin"
+      app_role:
+        | "learner"
+        | "teacher"
+        | "grade_head"
+        | "principal"
+        | "admin"
+        | "hod"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -671,7 +803,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["learner", "teacher", "grade_head", "principal", "admin"],
+      app_role: [
+        "learner",
+        "teacher",
+        "grade_head",
+        "principal",
+        "admin",
+        "hod",
+      ],
     },
   },
 } as const

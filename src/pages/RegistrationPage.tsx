@@ -74,6 +74,7 @@ const grades = [
 const roles = [
   { value: "learner", label: "Learner", description: "Student applying to the school" },
   { value: "teacher", label: "Teacher", description: "Educator applying for a teaching position" },
+  { value: "hod", label: "Head of Department", description: "HOD overseeing a department" },
   { value: "grade_head", label: "Grade Head", description: "Senior teacher overseeing a grade" },
   { value: "principal", label: "Principal/Deputy", description: "School leadership position" },
 ];
