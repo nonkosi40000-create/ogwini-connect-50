@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { 
   User, Users, FileText, Calendar, Mail, Settings,
   CheckCircle, XCircle, Clock, Search, Upload, Send,
-  Ticket, Eye, Download, Loader2, RefreshCw
+  Ticket, Eye, Download, Loader2, RefreshCw, Building2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -37,6 +37,18 @@ interface Profile {
   user_id: string;
 }
 
+interface Department {
+  id: string;
+  name: string;
+  code: string;
+}
+
+interface DepartmentHead {
+  id: string;
+  user_id: string;
+  department_id: string;
+}
+
 export default function AdminDashboard() {
   const { toast } = useToast();
   const { profile } = useAuth();
@@ -44,6 +56,9 @@ export default function AdminDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [allUsers, setAllUsers] = useState<Profile[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [departmentHeads, setDepartmentHeads] = useState<DepartmentHead[]>([]);
+  const [hodCandidates, setHodCandidates] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -56,6 +71,7 @@ export default function AdminDashboard() {
   const tabs = [
     { id: "registrations", label: "Registrations", icon: Users },
     { id: "users", label: "All Users", icon: User },
+    { id: "departments", label: "Departments", icon: Building2 },
     { id: "timetables", label: "Timetables", icon: Calendar },
     { id: "communications", label: "Email System", icon: Mail },
     { id: "settings", label: "Settings", icon: Settings },
@@ -90,9 +106,37 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchDepartments = async () => {
+    const [deptRes, headsRes, hodRes] = await Promise.all([
+      supabase.from('departments').select('*'),
+      supabase.from('department_heads').select('*'),
+      supabase.from('registrations').select('*').eq('role', 'hod').eq('status', 'approved'),
+    ]);
+    if (deptRes.data) setDepartments(deptRes.data);
+    if (headsRes.data) setDepartmentHeads(headsRes.data);
+    if (hodRes.data) setHodCandidates(hodRes.data);
+  };
+
+  const assignHOD = async (departmentId: string, userId: string) => {
+    setActionLoading(departmentId);
+    try {
+      // Remove existing HOD for this department
+      await supabase.from('department_heads').delete().eq('department_id', departmentId);
+      // Assign new HOD
+      const { error } = await supabase.from('department_heads').insert({ department_id: departmentId, user_id: userId });
+      if (error) throw error;
+      toast({ title: "HOD Assigned", description: "Head of Department has been assigned successfully." });
+      fetchDepartments();
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to assign HOD", variant: "destructive" });
+    }
+    setActionLoading(null);
+  };
+
   useEffect(() => {
     fetchRegistrations();
     fetchAllUsers();
+    fetchDepartments();
   }, []);
 
   const handleApprove = async (reg: Registration) => {
@@ -454,6 +498,45 @@ export default function AdminDashboard() {
                   </table>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Departments */}
+          {activeTab === "departments" && (
+            <div className="space-y-6">
+              <h2 className="font-heading text-xl font-semibold text-foreground">Department Management & HOD Assignment</h2>
+              <div className="grid md:grid-cols-2 gap-6">
+                {departments.map((dept) => {
+                  const currentHead = departmentHeads.find(h => h.department_id === dept.id);
+                  const currentHodUser = hodCandidates.find(c => c.user_id === currentHead?.user_id);
+                  return (
+                    <div key={dept.id} className="glass-card p-6">
+                      <h3 className="font-heading text-lg font-semibold mb-2">{dept.name}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">Code: {dept.code}</p>
+                      <div className="space-y-3">
+                        <p className="text-sm">
+                          <span className="font-medium">Current HOD: </span>
+                          {currentHodUser ? `${currentHodUser.first_name} ${currentHodUser.last_name}` : 'Not assigned'}
+                        </p>
+                        <select
+                          className="w-full h-10 px-3 rounded-lg bg-secondary border border-input text-foreground text-sm"
+                          value={currentHead?.user_id || ''}
+                          onChange={(e) => e.target.value && assignHOD(dept.id, e.target.value)}
+                          disabled={actionLoading === dept.id}
+                        >
+                          <option value="">Select HOD...</option>
+                          {hodCandidates.map(c => (
+                            <option key={c.id} value={c.user_id || ''}>{c.first_name} {c.last_name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {hodCandidates.length === 0 && (
+                <p className="text-center text-muted-foreground py-4">No approved HODs available. Approve HOD registrations first.</p>
+              )}
             </div>
           )}
 

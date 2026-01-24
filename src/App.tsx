@@ -16,6 +16,7 @@ import UserProfilePage from "./pages/UserProfilePage";
 import LearnerDashboard from "./pages/dashboards/LearnerDashboard";
 import TeacherDashboard from "./pages/dashboards/TeacherDashboard";
 import GradeHeadDashboard from "./pages/dashboards/GradeHeadDashboard";
+import HODDashboard from "./pages/dashboards/HODDashboard";
 import PrincipalDashboard from "./pages/dashboards/PrincipalDashboard";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import PendingDashboard from "./pages/dashboards/PendingDashboard";
@@ -69,6 +70,11 @@ const App = () => (
             <Route path="/dashboard/grade-head" element={
               <ProtectedRoute allowedRoles={["grade_head"]}>
                 <GradeHeadDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/hod" element={
+              <ProtectedRoute allowedRoles={["hod"]}>
+                <HODDashboard />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/principal" element={
