@@ -633,6 +633,102 @@ export type Database = {
           },
         ]
       }
+      syllabi: {
+        Row: {
+          created_at: string
+          department_id: string
+          description: string | null
+          file_url: string
+          grade: string | null
+          id: string
+          subject_id: string
+          title: string
+          updated_at: string
+          uploaded_by: string
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          department_id: string
+          description?: string | null
+          file_url: string
+          grade?: string | null
+          id?: string
+          subject_id: string
+          title: string
+          updated_at?: string
+          uploaded_by: string
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          department_id?: string
+          description?: string | null
+          file_url?: string
+          grade?: string | null
+          id?: string
+          subject_id?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string
+          year?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "syllabi_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "syllabi_subject_id_fkey"
+            columns: ["subject_id"]
+            isOneToOne: false
+            referencedRelation: "subjects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_ratings: {
+        Row: {
+          created_at: string
+          feedback: string | null
+          id: string
+          is_anonymous: boolean | null
+          learner_id: string
+          rating: number
+          subject: string
+          teacher_id: string
+          term: string | null
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          learner_id: string
+          rating: number
+          subject: string
+          teacher_id: string
+          term?: string | null
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          feedback?: string | null
+          id?: string
+          is_anonymous?: boolean | null
+          learner_id?: string
+          rating?: number
+          subject?: string
+          teacher_id?: string
+          term?: string | null
+          year?: number | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -676,6 +772,7 @@ export type Database = {
         | "principal"
         | "admin"
         | "hod"
+        | "llc"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -810,6 +907,7 @@ export const Constants = {
         "principal",
         "admin",
         "hod",
+        "llc",
       ],
     },
   },
