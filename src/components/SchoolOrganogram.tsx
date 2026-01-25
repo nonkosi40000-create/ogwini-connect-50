@@ -61,13 +61,17 @@ const SchoolOrganogram = () => {
 
   const getDepartmentColor = (code: string) => {
     switch (code) {
-      case "MATH_SCI":
+      case "SCI":
         return "bg-blue-500/10 border-blue-500/30 text-blue-700 dark:text-blue-300";
-      case "TECH_MECH":
+      case "COM":
+        return "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300";
+      case "TECH":
         return "bg-orange-500/10 border-orange-500/30 text-orange-700 dark:text-orange-300";
-      case "DRAMA_ARTS":
+      case "ARTS":
         return "bg-purple-500/10 border-purple-500/30 text-purple-700 dark:text-purple-300";
-      case "GENERAL":
+      case "LANG":
+        return "bg-pink-500/10 border-pink-500/30 text-pink-700 dark:text-pink-300";
+      case "GEN":
         return "bg-green-500/10 border-green-500/30 text-green-700 dark:text-green-300";
       default:
         return "bg-muted border-border";
@@ -137,13 +141,13 @@ const SchoolOrganogram = () => {
                 <CardTitle className="text-lg">{dept.name}</CardTitle>
                 {hasHOD(dept.id) && (
                   <Badge variant="outline" className="text-xs">
-                    HOD Assigned
+                    {dept.code === "LANG" ? "LLC Assigned" : "HOD Assigned"}
                   </Badge>
                 )}
               </div>
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <User className="w-4 h-4" />
-                <span>Head of Department</span>
+                <span>{dept.code === "LANG" ? "Language Learning Coordinator" : "Head of Department"}</span>
               </div>
             </CardHeader>
             <CardContent>

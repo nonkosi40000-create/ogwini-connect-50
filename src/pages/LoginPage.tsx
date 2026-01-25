@@ -3,17 +3,31 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { GraduationCap, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { GraduationCap, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, UserCircle } from "lucide-react";
 import { useAuth, useRoleRedirect } from "@/hooks/useAuth";
 import schoolClassroom from "@/assets/school-classroom.jpg";
+
+type LoginRole = "learner" | "teacher" | "grade_head" | "principal" | "admin" | "hod" | "llc";
+
+const roleLabels: Record<LoginRole, string> = {
+  learner: "Learner",
+  teacher: "Teacher",
+  grade_head: "Grade Head",
+  hod: "Head of Department (HOD)",
+  llc: "Language Learning Coordinator (LLC)",
+  principal: "Principal",
+  admin: "Administrator",
+};
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [selectedRole, setSelectedRole] = useState<LoginRole | "">("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const { signIn, user, loading } = useAuth();
+  const { signIn, user, loading, role: userRole } = useAuth();
   const { redirectToDashboard, dataLoaded } = useRoleRedirect();
   const navigate = useNavigate();
 
@@ -26,6 +40,11 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!selectedRole) {
+      return;
+    }
+    
     setIsSubmitting(true);
     
     const { error, user: signedInUser } = await signIn(email, password);
@@ -106,9 +125,28 @@ export default function LoginPage() {
           </div>
 
           <h2 className="font-heading text-2xl font-bold text-foreground mb-2">Sign In</h2>
-          <p className="text-muted-foreground mb-8">Enter your credentials to access your portal</p>
+          <p className="text-muted-foreground mb-8">Select your role and enter credentials to access your dashboard</p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <Label htmlFor="role">Login As *</Label>
+              <div className="relative mt-1.5">
+                <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+                <Select value={selectedRole} onValueChange={(value) => setSelectedRole(value as LoginRole)}>
+                  <SelectTrigger className="pl-10">
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(roleLabels).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
             <div>
               <Label htmlFor="email">Email Address</Label>
               <div className="relative mt-1.5">
@@ -153,7 +191,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || !selectedRole}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />

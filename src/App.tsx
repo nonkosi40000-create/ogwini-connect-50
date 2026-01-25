@@ -17,6 +17,7 @@ import LearnerDashboard from "./pages/dashboards/LearnerDashboard";
 import TeacherDashboard from "./pages/dashboards/TeacherDashboard";
 import GradeHeadDashboard from "./pages/dashboards/GradeHeadDashboard";
 import HODDashboard from "./pages/dashboards/HODDashboard";
+import LLCDashboard from "./pages/dashboards/LLCDashboard";
 import PrincipalDashboard from "./pages/dashboards/PrincipalDashboard";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import PendingDashboard from "./pages/dashboards/PendingDashboard";
@@ -75,6 +76,11 @@ const App = () => (
             <Route path="/dashboard/hod" element={
               <ProtectedRoute allowedRoles={["hod"]}>
                 <HODDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/llc" element={
+              <ProtectedRoute allowedRoles={["llc"]}>
+                <LLCDashboard />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/principal" element={
