@@ -18,6 +18,7 @@ import {
   Clock,
   Upload,
   Loader2,
+  Star,
 } from "lucide-react";
 import {
   Table,
@@ -41,6 +42,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { SyllabusUpload } from "@/components/dashboard/SyllabusUpload";
+import { TeacherRatings } from "@/components/dashboard/TeacherRatings";
 
 interface Department {
   id: string;
@@ -83,8 +86,10 @@ const HODDashboard = () => {
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Building2 },
+    { id: "syllabus", label: "Syllabus", icon: FileText },
     { id: "subjects", label: "Subjects", icon: BookOpen },
     { id: "policies", label: "Curriculum Policies", icon: FileText },
+    { id: "ratings", label: "Teacher Ratings", icon: Star },
     { id: "teachers", label: "Department Teachers", icon: Users },
   ];
 
@@ -530,6 +535,17 @@ const HODDashboard = () => {
                     )}
                   </div>
                 </div>
+              )}
+
+              {activeTab === "syllabus" && department && (
+                <SyllabusUpload 
+                  departmentId={department.id} 
+                  departmentName={department.name} 
+                />
+              )}
+
+              {activeTab === "ratings" && department && (
+                <TeacherRatings departmentId={department.id} />
               )}
 
               {activeTab === "teachers" && (

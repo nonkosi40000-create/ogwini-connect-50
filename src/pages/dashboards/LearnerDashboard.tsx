@@ -9,6 +9,7 @@ import {
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { TeacherRatingForm } from "@/components/dashboard/TeacherRatingForm";
 
 interface LearningMaterial {
   id: string;
@@ -65,6 +66,7 @@ export default function LearnerDashboard() {
     { id: "results", label: "Results", icon: Trophy },
     { id: "materials", label: "Learning Materials", icon: BookOpen },
     { id: "quizzes", label: "Quizzes", icon: Play },
+    { id: "rate-teacher", label: "Rate Teachers", icon: Star },
     { id: "timetable", label: "Timetable", icon: Calendar },
     { id: "notifications", label: "Notifications", icon: Bell },
   ];
@@ -397,6 +399,40 @@ export default function LearnerDashboard() {
                       <p className="text-muted-foreground">Quizzes will appear here when published by teachers.</p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Rate Teachers Tab */}
+              {activeTab === "rate-teacher" && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="font-heading text-xl font-semibold text-foreground">Rate Your Teachers</h2>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Your feedback is anonymous and helps improve teaching quality.
+                      </p>
+                    </div>
+                    <TeacherRatingForm />
+                  </div>
+
+                  <div className="glass-card p-6">
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                        <Star className="w-6 h-6 text-primary" />
+                      </div>
+                      <div>
+                        <h3 className="font-heading font-semibold text-foreground mb-2">
+                          How Teacher Ratings Work
+                        </h3>
+                        <ul className="text-sm text-muted-foreground space-y-2">
+                          <li>• All ratings are completely anonymous</li>
+                          <li>• Rate teachers on a scale of 1-5 stars</li>
+                          <li>• Your feedback helps HODs and school leadership improve teaching quality</li>
+                          <li>• You can rate each teacher once per term</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 
