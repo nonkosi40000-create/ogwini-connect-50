@@ -54,13 +54,13 @@ interface UploadedFiles {
   parentId: File | null;
 }
 
-// Grade structure: 8A-8H, 9A-9J, 10A-10J, 11A-11J, 12A-12J
+// Grade structure: 8A-8K through 12A-12K
 const gradeClasses: Record<string, string[]> = {
-  "Grade 8": ["A", "B", "C", "D", "E", "F", "G", "H"],
-  "Grade 9": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
-  "Grade 10": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
-  "Grade 11": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
-  "Grade 12": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"],
+  "Grade 8": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"],
+  "Grade 9": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"],
+  "Grade 10": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"],
+  "Grade 11": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"],
+  "Grade 12": ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K"],
 };
 
 const grades = [

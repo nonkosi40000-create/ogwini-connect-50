@@ -80,6 +80,7 @@ export default function TeacherDashboard() {
   const [marksAssessment, setMarksAssessment] = useState("");
   const [marksTotalMarks, setMarksTotalMarks] = useState("100");
   const [studentMarks, setStudentMarks] = useState<Record<string, string>>({});
+  const [studentFeedback, setStudentFeedback] = useState<Record<string, string>>({});
   const [savingMarks, setSavingMarks] = useState(false);
 
   // Email form
@@ -178,6 +179,7 @@ export default function TeacherDashboard() {
           marks_obtained: parseFloat(mark),
           total_marks: parseFloat(marksTotalMarks),
           recorded_by: user?.id,
+          feedback: studentFeedback[studentId] || null,
         }));
 
       if (entries.length === 0) {
@@ -192,9 +194,10 @@ export default function TeacherDashboard() {
 
       toast({
         title: "Marks Saved",
-        description: `${entries.length} marks recorded successfully.`,
+        description: `${entries.length} marks with feedback recorded successfully.`,
       });
       setStudentMarks({});
+      setStudentFeedback({});
     } catch (error) {
       console.error('Error saving marks:', error);
       toast({ title: "Error", description: "Failed to save marks.", variant: "destructive" });
@@ -791,6 +794,7 @@ export default function TeacherDashboard() {
                             <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Student Name</th>
                             <th className="px-4 py-3 text-center text-sm font-medium text-foreground">Mark (/{marksTotalMarks})</th>
                             <th className="px-4 py-3 text-center text-sm font-medium text-foreground">%</th>
+                            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Feedback (Private)</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -821,16 +825,32 @@ export default function TeacherDashboard() {
                                 }`}>
                                   {percentage !== null ? `${percentage}%` : "-"}
                                 </td>
+                                <td className="px-4 py-3">
+                                  <Input
+                                    placeholder="Private feedback for this student..."
+                                    value={studentFeedback[student.user_id] || ""}
+                                    onChange={(e) => setStudentFeedback(prev => ({
+                                      ...prev,
+                                      [student.user_id]: e.target.value
+                                    }))}
+                                    className="text-sm"
+                                  />
+                                </td>
                               </tr>
                             );
                           })}
                         </tbody>
                       </table>
-                      <div className="p-4 border-t border-border flex justify-end">
-                        <Button onClick={handleSaveMarks} disabled={savingMarks}>
-                          {savingMarks ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
-                          Save Marks
-                        </Button>
+                      <div className="p-4 border-t border-border">
+                        <p className="text-xs text-muted-foreground mb-3">
+                          <strong>Note:</strong> Feedback is private and will only be visible to each individual student.
+                        </p>
+                        <div className="flex justify-end">
+                          <Button onClick={handleSaveMarks} disabled={savingMarks}>
+                            {savingMarks ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+                            Save Marks & Feedback
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ) : (

@@ -4,12 +4,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   User, BookOpen, FileText, Calendar, Trophy, Bell, 
-  Download, Clock, Play, ChevronRight, Star, Loader2
+  Download, Clock, Play, ChevronRight, Star, Loader2, Send
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { TeacherRatingForm } from "@/components/dashboard/TeacherRatingForm";
+import { SubjectCard } from "@/components/dashboard/SubjectCard";
+import { NotificationsPanel } from "@/components/dashboard/NotificationsPanel";
+import { MarksWithFeedback } from "@/components/dashboard/MarksWithFeedback";
+import { SubmissionForm } from "@/components/dashboard/SubmissionForm";
+import { PastPapers } from "@/components/PastPapers";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface LearningMaterial {
   id: string;
@@ -30,16 +41,6 @@ interface Quiz {
   duration_minutes: number | null;
 }
 
-interface Mark {
-  id: string;
-  subject: string;
-  assessment_name: string;
-  marks_obtained: number;
-  total_marks: number;
-  term: string | null;
-  feedback: string | null;
-}
-
 interface Announcement {
   id: string;
   title: string;
@@ -48,28 +49,51 @@ interface Announcement {
   type: string;
 }
 
+// Subjects for different grades
+const grade8to9Subjects = [
+  "IsiZulu", "English (FAL)", "Afrikaans (SAL)", "Mathematics", "Natural Sciences",
+  "Life Orientation", "Dramatic Arts", "Music", "Visual Arts", "History",
+  "Geography", "Technology", "Economics", "Accounting"
+];
+
+const grade10to12Compulsory = [
+  "IsiZulu", "English (FAL)", "Life Orientation", "Mathematics"
+];
+
 export default function LearnerDashboard() {
   const { profile, user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [materials, setMaterials] = useState<LearningMaterial[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
-  const [marks, setMarks] = useState<Mark[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [teacherRating, setTeacherRating] = useState(0);
-  const [ratingTeacher, setRatingTeacher] = useState("");
+  
+  // Subject modal
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+  const [subjectModalOpen, setSubjectModalOpen] = useState(false);
+  
+  // Submission form
+  const [submissionOpen, setSubmissionOpen] = useState(false);
+  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
 
   const tabs = [
     { id: "overview", label: "Overview", icon: User },
+    { id: "subjects", label: "My Subjects", icon: BookOpen },
     { id: "results", label: "Results", icon: Trophy },
-    { id: "materials", label: "Learning Materials", icon: BookOpen },
+    { id: "materials", label: "Learning Materials", icon: FileText },
+    { id: "pastpapers", label: "Past Papers", icon: FileText },
     { id: "quizzes", label: "Quizzes", icon: Play },
     { id: "rate-teacher", label: "Rate Teachers", icon: Star },
-    { id: "timetable", label: "Timetable", icon: Calendar },
     { id: "notifications", label: "Notifications", icon: Bell },
   ];
+
+  const learnerGrade = profile?.grade || 'Grade 11';
+  const isGrade10Plus = ["Grade 10", "Grade 11", "Grade 12"].includes(learnerGrade);
+  
+  // Get learner's subjects based on grade
+  const mySubjects = isGrade10Plus ? grade10to12Compulsory : grade8to9Subjects;
 
   const fetchData = async () => {
     setLoading(true);
@@ -96,7 +120,7 @@ export default function LearnerDashboard() {
       .from('announcements')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(20);
     
     if (announcementsData) setAnnouncements(announcementsData);
 
@@ -107,19 +131,24 @@ export default function LearnerDashboard() {
     fetchData();
   }, []);
 
-  const learnerGrade = profile?.grade || 'Grade 11';
-  
-  // Filter materials by learner's grade
+  // Filter materials by learner's grade and selected subject
   const filteredMaterials = materials.filter(m => 
     (!m.grade || m.grade === learnerGrade) &&
     (m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
      m.subject?.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
-  // Calculate average from marks
-  const average = marks.length > 0 
-    ? Math.round(marks.reduce((sum, m) => sum + (m.marks_obtained / m.total_marks * 100), 0) / marks.length)
-    : 0;
+  const getSubjectMaterials = (subject: string) => {
+    return materials.filter(m => 
+      m.subject?.toLowerCase() === subject.toLowerCase() &&
+      (!m.grade || m.grade === learnerGrade)
+    );
+  };
+
+  const handleSubjectClick = (subject: string) => {
+    setSelectedSubject(subject);
+    setSubjectModalOpen(true);
+  };
 
   return (
     <Layout>
@@ -136,7 +165,7 @@ export default function LearnerDashboard() {
                   {profile ? `${profile.first_name} ${profile.last_name}` : 'Welcome, Learner'}
                 </h1>
                 <p className="text-muted-foreground">
-                  {learnerGrade} • {profile?.id_number || 'Student'}
+                  {learnerGrade} {profile?.class || ''} • {profile?.id_number || 'Student'}
                 </p>
               </div>
               <div className="ml-auto">
@@ -181,24 +210,24 @@ export default function LearnerDashboard() {
               {/* Overview Tab */}
               {activeTab === "overview" && (
                 <div className="grid lg:grid-cols-3 gap-6">
-                  {/* Quick Stats */}
+                  {/* Quick Stats & Actions */}
                   <div className="lg:col-span-2 space-y-6">
                     <div className="grid sm:grid-cols-3 gap-4">
                       <div className="glass-card p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
-                            <Trophy className="w-5 h-5 text-primary" />
+                            <BookOpen className="w-5 h-5 text-primary" />
                           </div>
                           <div>
-                            <p className="text-2xl font-bold text-foreground">{average || '--'}%</p>
-                            <p className="text-xs text-muted-foreground">Average Mark</p>
+                            <p className="text-2xl font-bold text-foreground">{mySubjects.length}</p>
+                            <p className="text-xs text-muted-foreground">My Subjects</p>
                           </div>
                         </div>
                       </div>
                       <div className="glass-card p-4">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-lg bg-accent/10 flex items-center justify-center">
-                            <BookOpen className="w-5 h-5 text-accent" />
+                            <FileText className="w-5 h-5 text-accent" />
                           </div>
                           <div>
                             <p className="text-2xl font-bold text-foreground">{filteredMaterials.length}</p>
@@ -216,6 +245,35 @@ export default function LearnerDashboard() {
                             <p className="text-xs text-muted-foreground">Quizzes</p>
                           </div>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Subject Access */}
+                    <div className="glass-card p-6">
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-heading font-semibold text-foreground">My Subjects</h3>
+                        <Button variant="ghost" size="sm" onClick={() => setActiveTab("subjects")}>
+                          View All <ChevronRight className="w-4 h-4 ml-1" />
+                        </Button>
+                      </div>
+                      <div className="grid sm:grid-cols-2 gap-3">
+                        {mySubjects.slice(0, 6).map((subject) => (
+                          <button
+                            key={subject}
+                            onClick={() => handleSubjectClick(subject)}
+                            className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary transition-colors text-left"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                              <BookOpen className="w-4 h-4 text-primary" />
+                            </div>
+                            <div>
+                              <span className="text-sm font-medium text-foreground">{subject}</span>
+                              <p className="text-xs text-muted-foreground">
+                                {getSubjectMaterials(subject).length} materials
+                              </p>
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     </div>
 
@@ -248,81 +306,50 @@ export default function LearnerDashboard() {
                     </div>
                   </div>
 
-                  {/* Notifications */}
-                  <div className="glass-card p-6">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-heading font-semibold text-foreground">Announcements</h3>
-                      <span className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                        {announcements.length}
-                      </span>
+                  {/* Notifications Sidebar */}
+                  <div className="space-y-6">
+                    <NotificationsPanel notifications={announcements} />
+                    
+                    {/* Quick Actions */}
+                    <div className="glass-card p-6">
+                      <h3 className="font-heading font-semibold text-foreground mb-4">Quick Actions</h3>
+                      <div className="space-y-2">
+                        <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab("rate-teacher")}>
+                          <Star className="w-4 h-4 mr-2" /> Rate a Teacher
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab("results")}>
+                          <Trophy className="w-4 h-4 mr-2" /> View My Results
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab("pastpapers")}>
+                          <FileText className="w-4 h-4 mr-2" /> Past Papers
+                        </Button>
+                      </div>
                     </div>
-                    <div className="space-y-3">
-                      {announcements.slice(0, 5).map((announcement) => (
-                        <div
-                          key={announcement.id}
-                          className="p-3 rounded-lg bg-primary/5 border border-primary/20"
-                        >
-                          <p className="text-sm font-medium text-foreground">{announcement.title}</p>
-                          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{announcement.content}</p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {new Date(announcement.created_at).toLocaleDateString()}
-                          </p>
-                        </div>
-                      ))}
-                      {announcements.length === 0 && (
-                        <p className="text-center text-muted-foreground py-4">No announcements</p>
-                      )}
-                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Subjects Tab */}
+              {activeTab === "subjects" && (
+                <div className="space-y-6">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">My Subjects</h2>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {mySubjects.map((subject) => (
+                      <SubjectCard
+                        key={subject}
+                        name={subject}
+                        materials={getSubjectMaterials(subject)}
+                        onViewMaterials={() => handleSubjectClick(subject)}
+                      />
+                    ))}
                   </div>
                 </div>
               )}
 
               {/* Results Tab */}
               {activeTab === "results" && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="font-heading text-xl font-semibold text-foreground">Academic Results</h2>
-                    <Button variant="outline" size="sm">
-                      <Download className="w-4 h-4 mr-2" /> Download Report
-                    </Button>
-                  </div>
-                  
-                  {marks.length > 0 ? (
-                    <div className="glass-card overflow-hidden">
-                      <table className="w-full">
-                        <thead className="bg-secondary">
-                          <tr>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Subject</th>
-                            <th className="px-4 py-3 text-left text-sm font-medium text-foreground">Assessment</th>
-                            <th className="px-4 py-3 text-center text-sm font-medium text-foreground">Mark</th>
-                            <th className="px-4 py-3 text-center text-sm font-medium text-foreground">Percentage</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {marks.map((mark, index) => (
-                            <tr key={mark.id} className={index % 2 === 0 ? "bg-background" : "bg-secondary/30"}>
-                              <td className="px-4 py-3 text-sm font-medium text-foreground">{mark.subject}</td>
-                              <td className="px-4 py-3 text-sm text-muted-foreground">{mark.assessment_name}</td>
-                              <td className="px-4 py-3 text-center text-sm text-muted-foreground">
-                                {mark.marks_obtained}/{mark.total_marks}
-                              </td>
-                              <td className={`px-4 py-3 text-center text-sm font-bold ${
-                                (mark.marks_obtained / mark.total_marks * 100) >= 50 ? "text-primary" : "text-destructive"
-                              }`}>
-                                {Math.round(mark.marks_obtained / mark.total_marks * 100)}%
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="glass-card p-8 text-center">
-                      <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-heading text-lg font-semibold text-foreground mb-2">No Results Yet</h3>
-                      <p className="text-muted-foreground">Your marks will appear here once teachers have captured them.</p>
-                    </div>
-                  )}
+                <div className="max-w-4xl mx-auto">
+                  <MarksWithFeedback />
                 </div>
               )}
 
@@ -371,6 +398,14 @@ export default function LearnerDashboard() {
                 </div>
               )}
 
+              {/* Past Papers Tab */}
+              {activeTab === "pastpapers" && (
+                <div className="space-y-6">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">Past Papers</h2>
+                  <PastPapers />
+                </div>
+              )}
+
               {/* Quizzes Tab */}
               {activeTab === "quizzes" && (
                 <div className="space-y-6">
@@ -384,7 +419,10 @@ export default function LearnerDashboard() {
                           <p className="text-sm text-muted-foreground mb-2">{quiz.subject} • {quiz.grade}</p>
                           <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
                             <Clock className="w-4 h-4" />
-                            {quiz.duration_minutes} minutes
+                            <span>{quiz.duration_minutes || 30} minutes</span>
+                            <span>•</span>
+                            <Trophy className="w-4 h-4" />
+                            <span>{quiz.total_marks || 100} marks</span>
                           </div>
                           <Button className="w-full">
                             <Play className="w-4 h-4 mr-2" /> Start Quiz
@@ -396,7 +434,7 @@ export default function LearnerDashboard() {
                     <div className="glass-card p-8 text-center">
                       <Play className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
                       <h3 className="font-heading text-lg font-semibold text-foreground mb-2">No Quizzes Available</h3>
-                      <p className="text-muted-foreground">Quizzes will appear here when published by teachers.</p>
+                      <p className="text-muted-foreground">Quizzes will appear here when published by your teachers.</p>
                     </div>
                   )}
                 </div>
@@ -404,68 +442,72 @@ export default function LearnerDashboard() {
 
               {/* Rate Teachers Tab */}
               {activeTab === "rate-teacher" && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="font-heading text-xl font-semibold text-foreground">Rate Your Teachers</h2>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Your feedback is anonymous and helps improve teaching quality.
-                      </p>
-                    </div>
-                    <TeacherRatingForm />
-                  </div>
-
+                <div className="max-w-2xl mx-auto space-y-6">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">Rate Your Teachers</h2>
+                  <p className="text-muted-foreground">
+                    Your feedback helps improve teaching quality. All ratings are anonymous.
+                  </p>
                   <div className="glass-card p-6">
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Star className="w-6 h-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-heading font-semibold text-foreground mb-2">
-                          How Teacher Ratings Work
-                        </h3>
-                        <ul className="text-sm text-muted-foreground space-y-2">
-                          <li>• All ratings are completely anonymous</li>
-                          <li>• Rate teachers on a scale of 1-5 stars</li>
-                          <li>• Your feedback helps HODs and school leadership improve teaching quality</li>
-                          <li>• You can rate each teacher once per term</li>
-                        </ul>
-                      </div>
-                    </div>
+                    <TeacherRatingForm />
                   </div>
                 </div>
               )}
 
               {/* Notifications Tab */}
               {activeTab === "notifications" && (
-                <div className="space-y-4">
-                  <h2 className="font-heading text-xl font-semibold text-foreground">All Notifications</h2>
-                  {announcements.length > 0 ? (
-                    announcements.map((announcement) => (
-                      <div key={announcement.id} className="glass-card p-4 border-primary/30">
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <p className="font-medium text-foreground">{announcement.title}</p>
-                            <p className="text-sm text-muted-foreground mt-1">{announcement.content}</p>
-                          </div>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap ml-4">
-                            {new Date(announcement.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="glass-card p-8 text-center">
-                      <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-heading text-lg font-semibold text-foreground mb-2">No Notifications</h3>
-                      <p className="text-muted-foreground">You're all caught up!</p>
-                    </div>
-                  )}
+                <div className="max-w-3xl mx-auto">
+                  <h2 className="font-heading text-xl font-semibold text-foreground mb-6">All Notifications</h2>
+                  <NotificationsPanel notifications={announcements} />
                 </div>
               )}
             </>
           )}
         </div>
+
+        {/* Subject Materials Modal */}
+        <Dialog open={subjectModalOpen} onOpenChange={setSubjectModalOpen}>
+          <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-primary" />
+                {selectedSubject} - Materials
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 mt-4">
+              {selectedSubject && getSubjectMaterials(selectedSubject).length > 0 ? (
+                getSubjectMaterials(selectedSubject).map((material) => (
+                  <div key={material.id} className="flex items-center justify-between p-4 rounded-lg bg-secondary/50">
+                    <div>
+                      <h4 className="font-medium text-foreground">{material.title}</h4>
+                      <p className="text-sm text-muted-foreground">{material.type}</p>
+                      {material.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{material.description}</p>
+                      )}
+                    </div>
+                    <a href={material.file_url} target="_blank" rel="noopener noreferrer">
+                      <Button variant="outline" size="sm">
+                        <Download className="w-4 h-4 mr-2" /> Download
+                      </Button>
+                    </a>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No materials available for this subject yet.</p>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Submission Form */}
+        <SubmissionForm
+          isOpen={submissionOpen}
+          onClose={() => setSubmissionOpen(false)}
+          assignment={selectedAssignment}
+          userId={user?.id || ""}
+        />
       </div>
     </Layout>
   );
