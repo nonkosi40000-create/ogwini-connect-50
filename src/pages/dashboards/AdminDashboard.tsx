@@ -5,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { 
   User, Users, FileText, Calendar, Mail, Settings,
   CheckCircle, XCircle, Clock, Search, Upload, Send,
-  Ticket, Eye, Download, Loader2, RefreshCw, Building2
+  Ticket, Eye, Download, Loader2, RefreshCw, Building2, Star
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { RegistrationDetailModal } from "@/components/dashboard/RegistrationDetailModal";
+import { TeacherRatingsView } from "@/components/dashboard/TeacherRatingsView";
 
 interface Registration {
   id: string;
@@ -18,6 +20,7 @@ interface Registration {
   email: string;
   phone: string | null;
   grade: string | null;
+  class?: string | null;
   role: string;
   status: string;
   created_at: string;
@@ -25,7 +28,13 @@ interface Registration {
   id_document_url: string | null;
   proof_of_address_url: string | null;
   payment_proof_url: string | null;
+  report_url?: string | null;
   id_number: string | null;
+  address: string | null;
+  parent_name: string | null;
+  parent_phone: string | null;
+  parent_email: string | null;
+  admin_notes?: string | null;
 }
 
 interface Profile {
@@ -61,6 +70,8 @@ export default function AdminDashboard() {
   const [hodCandidates, setHodCandidates] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [selectedRegistration, setSelectedRegistration] = useState<Registration | null>(null);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   // Email form state
   const [emailRecipients, setEmailRecipients] = useState("all");
@@ -72,6 +83,7 @@ export default function AdminDashboard() {
     { id: "registrations", label: "Registrations", icon: Users },
     { id: "users", label: "All Users", icon: User },
     { id: "departments", label: "Departments", icon: Building2 },
+    { id: "ratings", label: "Teacher Ratings", icon: Star },
     { id: "timetables", label: "Timetables", icon: Calendar },
     { id: "communications", label: "Email System", icon: Mail },
     { id: "settings", label: "Settings", icon: Settings },
@@ -420,6 +432,17 @@ export default function AdminDashboard() {
                                 </span>
                               </td>
                               <td className="px-4 py-3 text-center">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => {
+                                    setSelectedRegistration(reg);
+                                    setDetailModalOpen(true);
+                                  }}
+                                  title="View Details"
+                                >
+                                  <Eye className="w-4 h-4 text-primary" />
+                                </Button>
                                 {reg.status === "pending" && (
                                   <div className="flex justify-center gap-2">
                                     <Button 
@@ -540,6 +563,14 @@ export default function AdminDashboard() {
             </div>
           )}
 
+          {/* Teacher Ratings */}
+          {activeTab === "ratings" && (
+            <div className="space-y-6">
+              <h2 className="font-heading text-xl font-semibold text-foreground">Teacher Performance Ratings</h2>
+              <TeacherRatingsView />
+            </div>
+          )}
+
           {/* Timetables */}
           {activeTab === "timetables" && (
             <div className="max-w-2xl mx-auto space-y-6">
@@ -650,6 +681,22 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+
+        {/* Registration Detail Modal */}
+        <RegistrationDetailModal
+          registration={selectedRegistration}
+          isOpen={detailModalOpen}
+          onClose={() => setDetailModalOpen(false)}
+          onApprove={(reg) => {
+            handleApprove(reg);
+            setDetailModalOpen(false);
+          }}
+          onReject={(reg) => {
+            handleReject(reg);
+            setDetailModalOpen(false);
+          }}
+          isLoading={actionLoading === selectedRegistration?.id}
+        />
       </div>
     </Layout>
   );
