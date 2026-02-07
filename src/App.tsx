@@ -21,6 +21,8 @@ import LLCDashboard from "./pages/dashboards/LLCDashboard";
 import PrincipalDashboard from "./pages/dashboards/PrincipalDashboard";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import PendingDashboard from "./pages/dashboards/PendingDashboard";
+import FinanceDashboard from "./pages/dashboards/FinanceDashboard";
+import LibrarianDashboard from "./pages/dashboards/LibrarianDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -91,6 +93,16 @@ const App = () => (
             <Route path="/dashboard/admin" element={
               <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/finance" element={
+              <ProtectedRoute allowedRoles={["finance"]}>
+                <FinanceDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/librarian" element={
+              <ProtectedRoute allowedRoles={["librarian"]}>
+                <LibrarianDashboard />
               </ProtectedRoute>
             } />
             <Route path="*" element={<NotFound />} />

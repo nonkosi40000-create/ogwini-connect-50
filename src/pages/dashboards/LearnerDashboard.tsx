@@ -15,6 +15,9 @@ import { NotificationsPanel } from "@/components/dashboard/NotificationsPanel";
 import { MarksWithFeedback } from "@/components/dashboard/MarksWithFeedback";
 import { SubmissionForm } from "@/components/dashboard/SubmissionForm";
 import { PastPapers } from "@/components/PastPapers";
+import { ELearningMaterials } from "@/components/dashboard/ELearningMaterials";
+import { SubscriptionPayment } from "@/components/dashboard/SubscriptionPayment";
+import { RequestStatement } from "@/components/dashboard/RequestStatement";
 import {
   Dialog,
   DialogContent,
@@ -84,6 +87,9 @@ export default function LearnerDashboard() {
     { id: "results", label: "Results", icon: Trophy },
     { id: "materials", label: "Learning Materials", icon: FileText },
     { id: "pastpapers", label: "Past Papers", icon: FileText },
+    { id: "elearning", label: "E-Learning", icon: BookOpen },
+    { id: "subscription", label: "Subscription", icon: Calendar },
+    { id: "statement", label: "Request Statement", icon: FileText },
     { id: "quizzes", label: "Quizzes", icon: Play },
     { id: "rate-teacher", label: "Rate Teachers", icon: Star },
     { id: "notifications", label: "Notifications", icon: Bell },
@@ -403,6 +409,30 @@ export default function LearnerDashboard() {
                 <div className="space-y-6">
                   <h2 className="font-heading text-xl font-semibold text-foreground">Past Papers</h2>
                   <PastPapers />
+                </div>
+              )}
+
+              {/* E-Learning Tab */}
+              {activeTab === "elearning" && (
+                <div className="space-y-6">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">Electronic Learning Material</h2>
+                  <ELearningMaterials />
+                </div>
+              )}
+
+              {/* Subscription Tab */}
+              {activeTab === "subscription" && (
+                <div className="max-w-3xl mx-auto space-y-6">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">Monthly Subscription</h2>
+                  <SubscriptionPayment />
+                </div>
+              )}
+
+              {/* Request Statement Tab */}
+              {activeTab === "statement" && (
+                <div className="max-w-2xl mx-auto space-y-6">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">Financial Statement</h2>
+                  <RequestStatement />
                 </div>
               )}
 

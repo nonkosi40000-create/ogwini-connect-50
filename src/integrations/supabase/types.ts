@@ -255,6 +255,45 @@ export type Database = {
         }
         Relationships: []
       }
+      library_materials: {
+        Row: {
+          created_at: string
+          description: string | null
+          file_url: string
+          grade: string | null
+          id: string
+          subject: string | null
+          title: string
+          type: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          file_url: string
+          grade?: string | null
+          id?: string
+          subject?: string | null
+          title: string
+          type: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          file_url?: string
+          grade?: string | null
+          id?: string
+          subject?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Relationships: []
+      }
       marks: {
         Row: {
           assessment_name: string
@@ -601,6 +640,69 @@ export type Database = {
         }
         Relationships: []
       }
+      statement_requests: {
+        Row: {
+          created_at: string
+          id: string
+          learner_id: string
+          notes: string | null
+          statement_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          learner_id: string
+          notes?: string | null
+          statement_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          learner_id?: string
+          notes?: string | null
+          statement_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      student_balances: {
+        Row: {
+          amount_owed: number
+          created_at: string
+          id: string
+          last_payment_date: string | null
+          learner_id: string
+          notes: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          amount_owed?: number
+          created_at?: string
+          id?: string
+          last_payment_date?: string | null
+          learner_id: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          amount_owed?: number
+          created_at?: string
+          id?: string
+          last_payment_date?: string | null
+          learner_id?: string
+          notes?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       subjects: {
         Row: {
           code: string
@@ -632,6 +734,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          learner_id: string
+          month: string
+          payment_proof_url: string | null
+          status: string
+          updated_at: string
+          verified_by: string | null
+          year: number
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          learner_id: string
+          month: string
+          payment_proof_url?: string | null
+          status?: string
+          updated_at?: string
+          verified_by?: string | null
+          year?: number
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          learner_id?: string
+          month?: string
+          payment_proof_url?: string | null
+          status?: string
+          updated_at?: string
+          verified_by?: string | null
+          year?: number
+        }
+        Relationships: []
       }
       syllabi: {
         Row: {
@@ -773,6 +914,8 @@ export type Database = {
         | "admin"
         | "hod"
         | "llc"
+        | "finance"
+        | "librarian"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -908,6 +1051,8 @@ export const Constants = {
         "admin",
         "hod",
         "llc",
+        "finance",
+        "librarian",
       ],
     },
   },

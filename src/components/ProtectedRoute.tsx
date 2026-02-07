@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 
-type AppRole = "learner" | "teacher" | "grade_head" | "principal" | "admin" | "hod" | "llc";
+type AppRole = "learner" | "teacher" | "grade_head" | "principal" | "admin" | "hod" | "llc" | "finance" | "librarian";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -27,6 +27,10 @@ const roleToDashboardPath = (role: AppRole) => {
       return "/dashboard/principal";
     case "admin":
       return "/dashboard/admin";
+    case "finance":
+      return "/dashboard/finance";
+    case "librarian":
+      return "/dashboard/librarian";
     default:
       return "/dashboard/pending";
   }
