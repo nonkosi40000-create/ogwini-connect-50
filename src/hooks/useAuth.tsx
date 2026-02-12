@@ -166,26 +166,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signIn = async (email: string, password: string) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
+      if (error) {
+        toast({
+          title: "Login Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return { error, user: null };
+      }
+
+      // Fetch user data immediately after sign in
+      if (data.user) {
+        await fetchUserData(data.user.id);
+      }
+
+      return { error: null, user: data.user };
+    } catch (err: any) {
       toast({
         title: "Login Failed",
-        description: error.message,
+        description: "Unable to connect to the server. Please check your internet connection and try again.",
         variant: "destructive",
       });
-      return { error, user: null };
+      return { error: err, user: null };
     }
-
-    // Fetch user data immediately after sign in
-    if (data.user) {
-      await fetchUserData(data.user.id);
-    }
-
-    return { error: null, user: data.user };
   };
 
   const signOut = async () => {
