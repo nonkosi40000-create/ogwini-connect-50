@@ -78,6 +78,7 @@ const roles = [
   { value: "llc", label: "Language Learning Coordinator", description: "LLC overseeing language subjects" },
   { value: "grade_head", label: "Grade Head", description: "Senior teacher overseeing a grade" },
   { value: "principal", label: "Principal/Deputy", description: "School leadership position" },
+  { value: "admin", label: "Administrator", description: "School admin managing registrations and approvals" },
   { value: "finance", label: "Finance", description: "Finance department staff managing fees and statements" },
   { value: "librarian", label: "Librarian", description: "Library staff managing e-learning materials" },
 ];
@@ -172,11 +173,17 @@ const [formData, setFormData] = useState<FormData>({
   });
 
   const isLearner = formData.role === "learner";
-  const isStaff = ["teacher", "grade_head", "principal", "hod", "llc", "finance", "librarian"].includes(formData.role);
+  const isStaff = ["teacher", "grade_head", "principal", "hod", "llc", "finance", "librarian", "admin"].includes(formData.role);
 
   const validateIdNumber = (id: string) => /^\d{13}$/.test(id);
   const validatePhone = (phone: string) => /^(\+27|0)\d{9}$/.test(phone.replace(/\s/g, ""));
-  const validateEmail = (email: string) => /^[^\s@]+@gmail\.com$/i.test(email) || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const validateEmail = (email: string) => /^[^\s@]+@gmail\.com$/i.test(email);
+  const validatePassword = (pw: string) => {
+    if (pw.length < 8) return "Password must be at least 8 characters.";
+    if (!/[0-9]/.test(pw)) return "Password must contain at least one number.";
+    if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pw)) return "Password must contain at least one special character.";
+    return null;
+  };
 
   // Extract age from ID number
   const getAgeFromId = (id: string) => {
@@ -362,8 +369,9 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
         toast({ title: "Password Mismatch", description: "Passwords do not match.", variant: "destructive" });
         return;
       }
-      if (formData.password.length < 6) {
-        toast({ title: "Weak Password", description: "Password must be at least 6 characters.", variant: "destructive" });
+      const pwError = validatePassword(formData.password);
+      if (pwError) {
+        toast({ title: "Weak Password", description: pwError, variant: "destructive" });
         return;
       }
       if (isLearner && formData.gradeApplying && !selectedGrade?.available) {
@@ -382,8 +390,20 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
 
     // Contact validation
     if (step === 2) {
-      if (!validatePhone(formData.phone) || !validateEmail(formData.email)) {
-        toast({ title: "Invalid Contact", description: "Check phone and email format.", variant: "destructive" });
+      if (!validateEmail(formData.email)) {
+        toast({ title: "Invalid Email", description: "Email must be a @gmail.com address.", variant: "destructive" });
+        return;
+      }
+      if (!validatePhone(formData.phone)) {
+        toast({ title: "Invalid Phone", description: "Phone must be a South African number (10 digits starting with 0 or +27).", variant: "destructive" });
+        return;
+      }
+      if (!formData.address.trim()) {
+        toast({ title: "Required", description: "Physical address is required.", variant: "destructive" });
+        return;
+      }
+      if (!formData.nextOfKinName.trim() || !validatePhone(formData.nextOfKinPhone)) {
+        toast({ title: "Next of Kin", description: "Next of kin name and valid SA phone number required.", variant: "destructive" });
         return;
       }
     }
@@ -613,14 +633,25 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
 
                     <div className="border-t border-border pt-4 mt-4">
                       <h3 className="font-medium text-foreground mb-3">Create Password</h3>
+                      <p className="text-xs text-muted-foreground mb-3">Min 8 characters, at least 1 number and 1 special character</p>
                       <div className="grid sm:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="password">Password *</Label>
                           <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required />
+                          {formData.password && validatePassword(formData.password) && (
+                            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" /> {validatePassword(formData.password)}
+                            </p>
+                          )}
                         </div>
                         <div>
                           <Label htmlFor="confirmPassword">Confirm Password *</Label>
                           <Input id="confirmPassword" name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required />
+                          {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                              <AlertCircle className="w-3 h-3" /> Passwords do not match
+                            </p>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -635,8 +666,13 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
                       Contact Information
                     </h2>
                     <div>
-                      <Label htmlFor="email">Email Address (@gmail.com preferred) *</Label>
+                      <Label htmlFor="email">Email Address (@gmail.com required) *</Label>
                       <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required placeholder="example@gmail.com" />
+                      {formData.email && !validateEmail(formData.email) && (
+                        <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" /> Email must end with @gmail.com
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="backupEmail">Backup Email Address *</Label>

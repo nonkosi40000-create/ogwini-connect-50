@@ -150,7 +150,7 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <Label htmlFor="email">Email Address</Label>
+              <Label htmlFor="email">Email Address (@gmail.com)</Label>
               <div className="relative mt-1.5">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -159,10 +159,13 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
-                  placeholder="Enter your email"
+                  placeholder="Enter your @gmail.com email"
                   required
                 />
               </div>
+              {email && !/^[^\s@]+@gmail\.com$/i.test(email) && (
+                <p className="text-xs text-destructive mt-1">Email must end with @gmail.com</p>
+              )}
             </div>
 
             <div>
@@ -193,7 +196,7 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || !selectedRole}>
+            <Button type="submit" className="w-full" size="lg" disabled={isSubmitting || !selectedRole || (!!email && !/^[^\s@]+@gmail\.com$/i.test(email))}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
