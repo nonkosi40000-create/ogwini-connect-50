@@ -78,6 +78,8 @@ const roles = [
   { value: "llc", label: "Language Learning Coordinator", description: "LLC overseeing language subjects" },
   { value: "grade_head", label: "Grade Head", description: "Senior teacher overseeing a grade" },
   { value: "principal", label: "Principal/Deputy", description: "School leadership position" },
+  { value: "finance", label: "Finance", description: "Finance department staff managing fees and statements" },
+  { value: "librarian", label: "Librarian", description: "Library staff managing e-learning materials" },
 ];
 
 // Compulsory subjects for Grade 8-9
@@ -170,7 +172,7 @@ const [formData, setFormData] = useState<FormData>({
   });
 
   const isLearner = formData.role === "learner";
-  const isStaff = ["teacher", "grade_head", "principal"].includes(formData.role);
+  const isStaff = ["teacher", "grade_head", "principal", "hod", "llc", "finance", "librarian"].includes(formData.role);
 
   const validateIdNumber = (id: string) => /^\d{13}$/.test(id);
   const validatePhone = (phone: string) => /^(\+27|0)\d{9}$/.test(phone.replace(/\s/g, ""));
