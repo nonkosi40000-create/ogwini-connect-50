@@ -12,6 +12,8 @@ import AcademicsPage from "./pages/AcademicsPage";
 import MerchandisePage from "./pages/MerchandisePage";
 import PortalPage from "./pages/PortalPage";
 import LoginPage from "./pages/LoginPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 import UserProfilePage from "./pages/UserProfilePage";
 import LearnerDashboard from "./pages/dashboards/LearnerDashboard";
 import TeacherDashboard from "./pages/dashboards/TeacherDashboard";
@@ -42,6 +44,8 @@ const App = () => (
             <Route path="/merchandise" element={<MerchandisePage />} />
             <Route path="/portal" element={<PortalPage />} />
             <Route path="/login" element={<LoginPage />} />
+            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="/signup" element={<Navigate to="/registration" replace />} />
             
             {/* Protected Routes */}
