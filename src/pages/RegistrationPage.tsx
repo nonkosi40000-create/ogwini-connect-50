@@ -311,7 +311,58 @@ const [formData, setFormData] = useState<FormData>({
         }
       });
 
-      if (authError) throw authError;
+      // If user already exists, try signing in and re-submitting registration
+      if (authError && (authError.message?.includes('already registered') || authError.message?.includes('already_exists'))) {
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (signInError) {
+          throw new Error("This email is already registered. If this is your account, please use the correct password or go to the login page.");
+        }
+
+        // Update the existing rejected registration with new role/data
+        if (signInData.user) {
+          const { error: updateRegError } = await supabase
+            .from('registrations')
+            .update({
+              role: formData.role as any,
+              first_name: formData.firstName,
+              last_name: formData.lastName,
+              status: formData.role === 'admin' ? 'approved' : 'pending',
+              phone: formData.phone,
+              id_number: formData.idNumber,
+              grade: isLearner ? formData.gradeApplying : formData.gradeTeaching,
+              class: isLearner ? formData.classApplying : null,
+              address: formData.address,
+              parent_name: formData.parentName,
+              parent_phone: formData.parentPhone,
+              parent_email: formData.parentEmail,
+              id_document_url: idDocUrl,
+              proof_of_address_url: proofAddrUrl,
+              report_url: reportUrl,
+              payment_proof_url: paymentUrl,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', signInData.user.id);
+
+          if (updateRegError) console.error('Re-registration update error:', updateRegError);
+
+          // Sign out so they wait for approval
+          await supabase.auth.signOut();
+
+          toast({
+            title: "Application Re-Submitted!",
+            description: "Your application has been updated and is pending review. Please allow up to 48 hours.",
+          });
+          setStep(7);
+          setSubmitting(false);
+          return;
+        }
+      } else if (authError) {
+        throw authError;
+      }
 
       // Update registration with all details
       if (authData.user) {
