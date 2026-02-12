@@ -8,7 +8,7 @@ import { GraduationCap, Mail, Lock, Eye, EyeOff, ArrowLeft, Loader2, UserCircle 
 import { useAuth, useRoleRedirect } from "@/hooks/useAuth";
 import schoolClassroom from "@/assets/school-classroom.jpg";
 
-type LoginRole = "learner" | "teacher" | "grade_head" | "principal" | "admin" | "hod" | "llc";
+type LoginRole = "learner" | "teacher" | "grade_head" | "principal" | "admin" | "hod" | "llc" | "finance" | "librarian";
 
 const roleLabels: Record<LoginRole, string> = {
   learner: "Learner",
@@ -18,6 +18,8 @@ const roleLabels: Record<LoginRole, string> = {
   llc: "Language Learning Coordinator (LLC)",
   principal: "Principal",
   admin: "Administrator",
+  finance: "Finance",
+  librarian: "Librarian",
 };
 
 export default function LoginPage() {
