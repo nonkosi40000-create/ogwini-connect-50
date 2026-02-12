@@ -200,11 +200,24 @@ const [formData, setFormData] = useState<FormData>({
     return age;
   };
 
-const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  // Extract date of birth from SA ID number
+  const getDobFromId = (id: string): string => {
+    if (id.length !== 13) return "";
+    const yy = parseInt(id.substring(0, 2));
+    const mm = id.substring(2, 4);
+    const dd = id.substring(4, 6);
+    const century = yy > 30 ? 1900 : 2000;
+    const yyyy = century + yy;
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    // Reset class when grade changes
     if (name === 'gradeApplying') {
       setFormData({ ...formData, [name]: value, classApplying: '', electiveSubjects: [] });
+    } else if (name === 'idNumber') {
+      const dob = getDobFromId(value);
+      setFormData({ ...formData, idNumber: value, dateOfBirth: dob || formData.dateOfBirth });
     } else {
       setFormData({ ...formData, [name]: value });
     }
@@ -672,8 +685,17 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
                     </div>
                     {formData.hasDisability === "yes" && (
                       <div>
-                        <Label htmlFor="disabilityDescription">Describe disability & accommodations needed *</Label>
-                        <Input id="disabilityDescription" name="disabilityDescription" value={formData.disabilityDescription} onChange={handleChange} required />
+                        <Label htmlFor="disabilityDescription">Please specify your disability and any accommodations needed *</Label>
+                        <textarea
+                          id="disabilityDescription"
+                          name="disabilityDescription"
+                          value={formData.disabilityDescription}
+                          onChange={handleChange}
+                          required
+                          rows={3}
+                          className="w-full px-4 py-2 rounded-lg bg-secondary border border-input text-foreground resize-none"
+                          placeholder="e.g. Visual impairment – requires enlarged print materials and front-row seating"
+                        />
                       </div>
                     )}
 
