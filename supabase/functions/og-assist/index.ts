@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    const response = await fetch('https://ai.lovable.dev/chat/completions', {
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${LOVABLE_API_KEY}`,
