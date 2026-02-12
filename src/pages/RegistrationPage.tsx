@@ -318,11 +318,28 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
           .eq('user_id', authData.user.id);
 
         if (regError) console.error('Registration update error:', regError);
+
+        // Send confirmation email via edge function
+        try {
+          await supabase.functions.invoke('send-registration-email', {
+            body: {
+              email: formData.email,
+              firstName: formData.firstName,
+              lastName: formData.lastName,
+              role: formData.role,
+            },
+          });
+        } catch (emailErr) {
+          console.error('Confirmation email error:', emailErr);
+        }
       }
 
+      const isAdminRole = formData.role === 'admin';
       toast({
-        title: "Application Submitted!",
-        description: "Your registration is pending admin approval.",
+        title: isAdminRole ? "Admin Account Created!" : "Application Submitted!",
+        description: isAdminRole
+          ? "Your admin account is active. You can sign in now."
+          : "A confirmation email has been sent. Please allow up to 48 hours for review.",
       });
       setStep(7);
     } catch (error: any) {
@@ -482,10 +499,33 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-8 h-8 text-primary" />
                 </div>
-                <h2 className="font-heading text-2xl font-bold text-foreground mb-2">Application Submitted!</h2>
-                <p className="text-muted-foreground mb-4">
-                  Your registration is pending admin approval. You'll receive an email once approved.
-                </p>
+                {formData.role === 'admin' ? (
+                  <>
+                    <h2 className="font-heading text-2xl font-bold text-foreground mb-2">Admin Account Activated!</h2>
+                    <p className="text-muted-foreground mb-2">
+                      Your administrator account has been automatically approved.
+                    </p>
+                    <p className="text-muted-foreground mb-4">
+                      Please check your email to verify your account, then sign in to access your Admin Dashboard.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="font-heading text-2xl font-bold text-foreground mb-2">Application Submitted!</h2>
+                    <p className="text-muted-foreground mb-2">
+                      A confirmation email has been sent to <strong className="text-foreground">{formData.email}</strong>.
+                    </p>
+                    <div className="bg-accent/10 border border-accent/30 rounded-lg p-4 my-4 text-left">
+                      <p className="text-sm text-foreground font-medium mb-2">⏳ What happens next:</p>
+                      <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                        <li>Our admin team will review your documents and personal information</li>
+                        <li>Please allow <strong className="text-foreground">up to 48 hours</strong> for your registration to be processed</li>
+                        <li>You will be notified once your registration is approved</li>
+                        <li>Once approved, you can sign in to access your dashboard</li>
+                      </ul>
+                    </div>
+                  </>
+                )}
                 <Button onClick={() => navigate('/login')}>Go to Login</Button>
               </div>
             ) : (
