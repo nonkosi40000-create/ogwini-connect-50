@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, LogIn, UserPlus } from "lucide-react";
+import { Menu, X, LogIn, UserPlus, LogOut } from "lucide-react";
 import { useState } from "react";
 import schoolLogo from "@/assets/school-logo.png";
+import { useAuth } from "@/hooks/useAuth";
 
 const navLinks = [
   { name: "Home", path: "/" },
@@ -16,6 +17,7 @@ const navLinks = [
 export function Navbar() {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+  const { user, signOut, profile } = useAuth();
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-dark/95 backdrop-blur-xl border-b border-border/20">
@@ -56,18 +58,32 @@ export function Navbar() {
 
           {/* Auth Buttons */}
           <div className="hidden lg:flex items-center gap-3">
-            <Button variant="ghost" size="sm" className="text-white hover:text-white hover:bg-white/10" asChild>
-              <Link to="/login" className="flex items-center gap-2">
-                <LogIn className="w-4 h-4" />
-                Login
-              </Link>
-            </Button>
-            <Button variant="default" size="sm" asChild>
-              <Link to="/registration" className="flex items-center gap-2">
-                <UserPlus className="w-4 h-4" />
-                Register
-              </Link>
-            </Button>
+            {user ? (
+              <>
+                <span className="text-sm text-white/70">
+                  {profile ? `${profile.first_name} ${profile.last_name}` : user.email}
+                </span>
+                <Button variant="ghost" size="sm" className="text-white hover:text-white hover:bg-white/10" onClick={signOut}>
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" className="text-white hover:text-white hover:bg-white/10" asChild>
+                  <Link to="/login" className="flex items-center gap-2">
+                    <LogIn className="w-4 h-4" />
+                    Login
+                  </Link>
+                </Button>
+                <Button variant="default" size="sm" asChild>
+                  <Link to="/registration" className="flex items-center gap-2">
+                    <UserPlus className="w-4 h-4" />
+                    Register
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -98,12 +114,21 @@ export function Navbar() {
                 </Link>
               ))}
               <div className="flex gap-2 mt-4 px-4">
-                <Button variant="outline" size="sm" className="flex-1 border-white/20 text-white hover:bg-white/10" asChild>
-                  <Link to="/login">Login</Link>
-                </Button>
-                <Button size="sm" className="flex-1" asChild>
-                  <Link to="/registration">Register</Link>
-                </Button>
+                {user ? (
+                  <Button variant="outline" size="sm" className="flex-1 border-white/20 text-white hover:bg-white/10" onClick={() => { signOut(); setIsOpen(false); }}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Sign Out
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" size="sm" className="flex-1 border-white/20 text-white hover:bg-white/10" asChild>
+                      <Link to="/login" onClick={() => setIsOpen(false)}>Login</Link>
+                    </Button>
+                    <Button size="sm" className="flex-1" asChild>
+                      <Link to="/registration" onClick={() => setIsOpen(false)}>Register</Link>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>

@@ -321,6 +321,7 @@ const [formData, setFormData] = useState<FormData>({
             phone: formData.phone,
             id_number: formData.idNumber,
             grade: isLearner ? formData.gradeApplying : formData.gradeTeaching,
+            class: isLearner ? formData.classApplying : null,
             address: formData.address,
             parent_name: formData.parentName,
             parent_phone: formData.parentPhone,
