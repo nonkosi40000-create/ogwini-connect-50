@@ -175,7 +175,7 @@ export default function AdminDashboard() {
           console.error('Role insert error:', roleError);
         }
 
-        // Create profile
+        // Create profile with all details
         const { error: profileError } = await supabase
           .from('profiles')
           .insert({
@@ -185,7 +185,12 @@ export default function AdminDashboard() {
             email: reg.email,
             phone: reg.phone,
             grade: reg.grade,
+            class: reg.class || null,
             id_number: reg.id_number,
+            address: reg.address,
+            parent_name: reg.parent_name,
+            parent_phone: reg.parent_phone,
+            parent_email: reg.parent_email,
           });
 
         if (profileError && !profileError.message.includes('duplicate')) {
