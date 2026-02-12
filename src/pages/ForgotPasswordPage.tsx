@@ -57,9 +57,15 @@ export default function ForgotPasswordPage() {
               A password reset link has been sent to:
             </p>
             <p className="font-medium text-foreground mb-4">{email}</p>
-            <p className="text-sm text-muted-foreground mb-6">
+            <p className="text-sm text-muted-foreground mb-4">
               Click the link in the email to set a new password. The link will expire in 1 hour.
             </p>
+            <div className="bg-accent/10 border border-accent/30 rounded-lg p-3 mb-6 text-left">
+              <p className="text-sm text-muted-foreground">
+                <strong className="text-foreground">💡 Didn't receive it?</strong> Check your <strong>spam/junk folder</strong>. 
+                The email is sent from a no-reply address and may be filtered automatically.
+              </p>
+            </div>
             <Button variant="outline" onClick={() => setSent(false)}>
               Send Again
             </Button>
