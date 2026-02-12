@@ -94,6 +94,7 @@ export default function AdminDashboard() {
     const { data, error } = await supabase
       .from('registrations')
       .select('*')
+      .neq('status', 'rejected')
       .order('created_at', { ascending: false });
     
     if (error) {
@@ -154,7 +155,47 @@ export default function AdminDashboard() {
   const handleApprove = async (reg: Registration) => {
     setActionLoading(reg.id);
     try {
-      // Update registration status
+      if (!reg.user_id) {
+        throw new Error("Registration has no linked user account");
+      }
+
+      // Step 1: Create user role first
+      const { error: roleError } = await supabase
+        .from('user_roles')
+        .upsert({ 
+          user_id: reg.user_id, 
+          role: reg.role as any 
+        }, { onConflict: 'user_id' });
+
+      if (roleError) {
+        console.error('Role insert error:', roleError);
+        throw new Error(`Failed to assign role: ${roleError.message}`);
+      }
+
+      // Step 2: Create profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          user_id: reg.user_id,
+          first_name: reg.first_name,
+          last_name: reg.last_name,
+          email: reg.email,
+          phone: reg.phone,
+          grade: reg.grade,
+          class: reg.class || null,
+          id_number: reg.id_number,
+          address: reg.address,
+          parent_name: reg.parent_name,
+          parent_phone: reg.parent_phone,
+          parent_email: reg.parent_email,
+        }, { onConflict: 'user_id' });
+
+      if (profileError) {
+        console.error('Profile insert error:', profileError);
+        throw new Error(`Failed to create profile: ${profileError.message}`);
+      }
+
+      // Step 3: Update registration status last
       const { error: regError } = await supabase
         .from('registrations')
         .update({ status: 'approved' })
@@ -162,53 +203,18 @@ export default function AdminDashboard() {
 
       if (regError) throw regError;
 
-      // Create user role
-      if (reg.user_id) {
-        const { error: roleError } = await supabase
-          .from('user_roles')
-          .insert({ 
-            user_id: reg.user_id, 
-            role: reg.role as any 
-          });
-
-        if (roleError && !roleError.message.includes('duplicate')) {
-          console.error('Role insert error:', roleError);
-        }
-
-        // Create profile with all details
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            user_id: reg.user_id,
-            first_name: reg.first_name,
-            last_name: reg.last_name,
-            email: reg.email,
-            phone: reg.phone,
-            grade: reg.grade,
-            class: reg.class || null,
-            id_number: reg.id_number,
-            address: reg.address,
-            parent_name: reg.parent_name,
-            parent_phone: reg.parent_phone,
-            parent_email: reg.parent_email,
-          });
-
-        if (profileError && !profileError.message.includes('duplicate')) {
-          console.error('Profile insert error:', profileError);
-        }
-      }
-
       toast({
         title: "Registration Approved",
         description: `${reg.first_name} ${reg.last_name} has been approved and can now access their dashboard.`,
       });
       
       fetchRegistrations();
-    } catch (error) {
+      fetchAllUsers();
+    } catch (error: any) {
       console.error('Approval error:', error);
       toast({
-        title: "Error",
-        description: "Failed to approve registration",
+        title: "Approval Failed",
+        description: error.message || "Failed to approve registration. Please try again.",
         variant: "destructive",
       });
     }
