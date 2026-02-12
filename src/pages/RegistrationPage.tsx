@@ -174,6 +174,8 @@ const [formData, setFormData] = useState<FormData>({
 
   const isLearner = formData.role === "learner";
   const isStaff = ["teacher", "grade_head", "principal", "hod", "llc", "finance", "librarian", "admin"].includes(formData.role);
+  const isTeachingStaff = ["teacher", "grade_head", "principal", "hod", "llc"].includes(formData.role);
+  const isNonTeachingStaff = ["admin", "finance", "librarian"].includes(formData.role);
 
   const validateIdNumber = (id: string) => /^\d{13}$/.test(id);
   const validatePhone = (phone: string) => /^(\+27|0)\d{9}$/.test(phone.replace(/\s/g, ""));
@@ -357,6 +359,9 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
     if (isLearner) {
       return ["Role", "Personal", "Contact", "Parent", "Documents", "Payment", "Complete"];
     }
+    if (isNonTeachingStaff) {
+      return ["Role", "Personal", "Contact", "Documents", "Complete"];
+    }
     return ["Role", "Personal", "Contact", "Professional", "Documents", "Complete"];
   };
 
@@ -433,8 +438,9 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
       }
     }
 
-    // Documents
-    if ((isLearner && step === 4) || (isStaff && step === 4)) {
+    // Documents - step 4 for learner/teaching staff, step 3 for non-teaching staff
+    const docStep = isNonTeachingStaff ? 3 : 4;
+    if (step === docStep) {
       if (!uploadedFiles.idDocument || !uploadedFiles.proofOfAddress) {
         toast({ title: "Missing Documents", description: "Please upload required documents.", variant: "destructive" });
         return;
@@ -494,7 +500,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
         <div className="container mx-auto px-4">
           <div className="max-w-2xl mx-auto">
             {/* Success */}
-            {((isLearner && step === 7) || (isStaff && step === 6)) ? (
+            {((isLearner && step === 7) || (isNonTeachingStaff && step === 5) || (isTeachingStaff && step === 6)) ? (
               <div className="glass-card p-8 text-center">
                 <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="w-8 h-8 text-primary" />
@@ -779,7 +785,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
                   </div>
                 )}
 
-                {step === 3 && isStaff && (
+                {step === 3 && isTeachingStaff && (
                   <div className="space-y-4">
                     <h2 className="font-heading text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
                       <Briefcase className="w-5 h-5 text-primary" />
@@ -814,7 +820,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
                 )}
 
                 {/* Step 4: Documents */}
-                {step === 4 && (
+                {((isLearner && step === 4) || (isTeachingStaff && step === 4) || (isNonTeachingStaff && step === 3)) && (
                   <div className="space-y-4">
                     <h2 className="font-heading text-xl font-semibold text-foreground mb-4 flex items-center gap-2">
                       <Upload className="w-5 h-5 text-primary" />
@@ -943,7 +949,7 @@ const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
                       Previous
                     </Button>
                   )}
-                  {((isLearner && step < 5) || (isStaff && step < 4) || step === 0) ? (
+                  {((isLearner && step < 5) || (isTeachingStaff && step < 4) || (isNonTeachingStaff && step < 3) || step === 0) ? (
                     <Button type="button" className="ml-auto" onClick={nextStep}>
                       {step === 0 ? "Get Started" : "Next Step"}
                     </Button>
