@@ -165,7 +165,7 @@ export default function AdminDashboard() {
         .upsert({ 
           user_id: reg.user_id, 
           role: reg.role as any 
-        }, { onConflict: 'user_id' });
+        }, { onConflict: 'user_id,role' });
 
       if (roleError) {
         console.error('Role insert error:', roleError);
