@@ -147,13 +147,14 @@ export default function FinanceDashboard() {
       
       if (error) throw error;
 
-      // Create announcement/notification for the learner
-      await supabase.from("announcements").insert({
+      // Create targeted notification for the specific learner
+      await supabase.from("notifications").insert({
+        user_id: selectedStatement.learner_id,
         title: "Your Financial Statement is Ready",
-        content: `Your financial statement has been processed and is ready for download. You can download it from the Request Statement section in your dashboard.`,
-        type: "marks",
-        created_by: user?.id,
-        target_audience: ["learner"],
+        message: "Your financial statement has been processed and is ready for download.",
+        type: "statement",
+        link_url: urlData.publicUrl,
+        link_label: "Download Statement",
       });
       
       toast({ title: "Statement Sent", description: "The statement has been uploaded and the learner has been notified." });
