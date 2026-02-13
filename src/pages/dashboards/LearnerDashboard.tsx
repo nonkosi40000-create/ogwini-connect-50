@@ -54,13 +54,13 @@ interface Announcement {
 
 // Subjects for different grades
 const grade8to9Subjects = [
-  "IsiZulu", "English (FAL)", "Afrikaans (SAL)", "Mathematics", "Natural Sciences",
-  "Life Orientation", "Dramatic Arts", "Music", "Visual Arts", "History",
+  "IsiZulu (HL)", "English (FAL)", "Afrikaans (SAL)", "Mathematics", "Natural Sciences",
+  "Life Orientation", "Dramatic Arts", "History",
   "Geography", "Technology", "Economics", "Accounting"
 ];
 
 const grade10to12Compulsory = [
-  "IsiZulu", "English (FAL)", "Life Orientation", "Mathematics"
+  "IsiZulu (HL)", "English (FAL)", "Afrikaans (SAL)", "Life Orientation", "Mathematics"
 ];
 
 export default function LearnerDashboard() {
@@ -95,11 +95,13 @@ export default function LearnerDashboard() {
     { id: "notifications", label: "Notifications", icon: Bell },
   ];
 
-  const learnerGrade = profile?.grade || 'Grade 11';
+  const learnerGrade = profile?.grade || '';
   const isGrade10Plus = ["Grade 10", "Grade 11", "Grade 12"].includes(learnerGrade);
   
   // Get learner's subjects based on grade
-  const mySubjects = isGrade10Plus ? grade10to12Compulsory : grade8to9Subjects;
+  const mySubjects = isGrade10Plus 
+    ? [...grade10to12Compulsory, ...(profile?.elective_subjects || [])]
+    : grade8to9Subjects;
 
   const fetchData = async () => {
     setLoading(true);
@@ -112,12 +114,18 @@ export default function LearnerDashboard() {
     
     if (materialsData) setMaterials(materialsData);
 
-    // Fetch published quizzes
-    const { data: quizzesData } = await supabase
+    // Fetch published quizzes filtered by learner grade
+    const quizQuery = supabase
       .from('quizzes')
       .select('*')
       .eq('status', 'published')
       .order('created_at', { ascending: false });
+    
+    if (learnerGrade) {
+      quizQuery.eq('grade', learnerGrade);
+    }
+    
+    const { data: quizzesData } = await quizQuery;
     
     if (quizzesData) setQuizzes(quizzesData);
 
@@ -135,7 +143,7 @@ export default function LearnerDashboard() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [learnerGrade]);
 
   // Filter materials by learner's grade and selected subject
   const filteredMaterials = materials.filter(m => 
@@ -171,7 +179,7 @@ export default function LearnerDashboard() {
                   {profile ? `${profile.first_name} ${profile.last_name}` : 'Welcome, Learner'}
                 </h1>
                 <p className="text-muted-foreground">
-                  {learnerGrade} {profile?.class || ''} • {profile?.id_number || 'Student'}
+                  {learnerGrade || 'No Grade Assigned'} {profile?.class ? `• ${profile.class}` : ''} {profile?.id_number ? `• ${profile.id_number}` : ''}
                 </p>
               </div>
               <div className="ml-auto">

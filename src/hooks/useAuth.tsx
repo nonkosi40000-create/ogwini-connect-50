@@ -21,6 +21,7 @@ interface Profile {
   parent_name: string | null;
   parent_phone: string | null;
   parent_email: string | null;
+  elective_subjects: string[] | null;
 }
 
 interface Registration {
