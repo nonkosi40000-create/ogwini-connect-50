@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      academic_reports: {
+        Row: {
+          created_at: string
+          file_url: string
+          id: string
+          learner_id: string
+          term: string | null
+          title: string
+          uploaded_by: string | null
+          year: number | null
+        }
+        Insert: {
+          created_at?: string
+          file_url: string
+          id?: string
+          learner_id: string
+          term?: string | null
+          title: string
+          uploaded_by?: string | null
+          year?: number | null
+        }
+        Update: {
+          created_at?: string
+          file_url?: string
+          id?: string
+          learner_id?: string
+          term?: string | null
+          title?: string
+          uploaded_by?: string | null
+          year?: number | null
+        }
+        Relationships: []
+      }
       announcements: {
         Row: {
           content: string
@@ -47,6 +80,48 @@ export type Database = {
           target_grades?: string[] | null
           title?: string
           type?: string
+        }
+        Relationships: []
+      }
+      complaints: {
+        Row: {
+          complaint_text: string
+          created_at: string
+          grade: string
+          id: string
+          is_anonymous: boolean | null
+          learner_id: string
+          responded_by: string | null
+          response: string | null
+          status: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          complaint_text: string
+          created_at?: string
+          grade: string
+          id?: string
+          is_anonymous?: boolean | null
+          learner_id: string
+          responded_by?: string | null
+          response?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          complaint_text?: string
+          created_at?: string
+          grade?: string
+          id?: string
+          is_anonymous?: boolean | null
+          learner_id?: string
+          responded_by?: string | null
+          response?: string | null
+          status?: string
+          subject?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -213,10 +288,67 @@ export type Database = {
         }
         Relationships: []
       }
+      homework_submissions: {
+        Row: {
+          created_at: string
+          file_url: string
+          id: string
+          learner_id: string
+          marked_by: string | null
+          marked_file_url: string | null
+          marks_obtained: number | null
+          material_id: string | null
+          notes: string | null
+          status: string
+          teacher_feedback: string | null
+          total_marks: number | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          file_url: string
+          id?: string
+          learner_id: string
+          marked_by?: string | null
+          marked_file_url?: string | null
+          marks_obtained?: number | null
+          material_id?: string | null
+          notes?: string | null
+          status?: string
+          teacher_feedback?: string | null
+          total_marks?: number | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          file_url?: string
+          id?: string
+          learner_id?: string
+          marked_by?: string | null
+          marked_file_url?: string | null
+          marks_obtained?: number | null
+          material_id?: string | null
+          notes?: string | null
+          status?: string
+          teacher_feedback?: string | null
+          total_marks?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_submissions_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "learning_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       learning_materials: {
         Row: {
           created_at: string
           description: string | null
+          due_date: string | null
           file_url: string
           grade: string | null
           id: string
@@ -230,6 +362,7 @@ export type Database = {
         Insert: {
           created_at?: string
           description?: string | null
+          due_date?: string | null
           file_url: string
           grade?: string | null
           id?: string
@@ -243,6 +376,7 @@ export type Database = {
         Update: {
           created_at?: string
           description?: string | null
+          due_date?: string | null
           file_url?: string
           grade?: string | null
           id?: string
@@ -339,6 +473,42 @@ export type Database = {
           total_marks?: number
           updated_at?: string
           year?: number | null
+        }
+        Relationships: []
+      }
+      merchandise_orders: {
+        Row: {
+          contact_message: string | null
+          created_at: string
+          id: string
+          items: Json
+          learner_id: string
+          payment_proof_url: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          contact_message?: string | null
+          created_at?: string
+          id?: string
+          items: Json
+          learner_id: string
+          payment_proof_url?: string | null
+          status?: string
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          contact_message?: string | null
+          created_at?: string
+          id?: string
+          items?: Json
+          learner_id?: string
+          payment_proof_url?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
         }
         Relationships: []
       }

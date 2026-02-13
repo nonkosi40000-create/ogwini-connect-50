@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   User, CreditCard, FileText, CheckCircle, Clock, DollarSign,
-  Loader2, Search, Send, Eye
+  Loader2, Search, Send, Eye, Upload
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 
 interface StatementRequest {
   id: string;
@@ -48,7 +49,7 @@ interface Subscription {
 }
 
 export default function FinanceDashboard() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("statements");
   const [loading, setLoading] = useState(true);
@@ -67,7 +68,8 @@ export default function FinanceDashboard() {
   // Statement response modal
   const [statementModalOpen, setStatementModalOpen] = useState(false);
   const [selectedStatement, setSelectedStatement] = useState<StatementRequest | null>(null);
-  const [statementUrl, setStatementUrl] = useState("");
+  const [statementFile, setStatementFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const tabs = [
     { id: "statements", label: "Statement Requests", icon: FileText },
@@ -120,19 +122,48 @@ export default function FinanceDashboard() {
   useEffect(() => { fetchData(); }, []);
 
   const handleFulfillStatement = async () => {
-    if (!selectedStatement || !statementUrl) return;
-    const { error } = await supabase
-      .from("statement_requests")
-      .update({ status: "fulfilled", statement_url: statementUrl })
-      .eq("id", selectedStatement.id);
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Statement Sent", description: "The statement has been sent to the learner." });
-      setStatementModalOpen(false);
-      setStatementUrl("");
-      fetchData();
+    if (!selectedStatement || !statementFile) {
+      toast({ title: "Missing File", description: "Please upload the statement document.", variant: "destructive" });
+      return;
     }
+    
+    setUploading(true);
+    try {
+      // Upload file to storage
+      const fileName = `${Date.now()}-${statementFile.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from("uploads")
+        .upload(`statements/${selectedStatement.learner_id}/${fileName}`, statementFile);
+      
+      if (uploadError) throw uploadError;
+      
+      const { data: urlData } = supabase.storage.from("uploads").getPublicUrl(`statements/${selectedStatement.learner_id}/${fileName}`);
+      
+      // Update statement request with URL
+      const { error } = await supabase
+        .from("statement_requests")
+        .update({ status: "fulfilled", statement_url: urlData.publicUrl })
+        .eq("id", selectedStatement.id);
+      
+      if (error) throw error;
+
+      // Create announcement/notification for the learner
+      await supabase.from("announcements").insert({
+        title: "Your Financial Statement is Ready",
+        content: `Your financial statement has been processed and is ready for download. You can download it from the Request Statement section in your dashboard.`,
+        type: "marks",
+        created_by: user?.id,
+        target_audience: ["learner"],
+      });
+      
+      toast({ title: "Statement Sent", description: "The statement has been uploaded and the learner has been notified." });
+      setStatementModalOpen(false);
+      setStatementFile(null);
+      fetchData();
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+    setUploading(false);
   };
 
   const handleUpdateBalance = async () => {
@@ -141,7 +172,7 @@ export default function FinanceDashboard() {
     if (existing) {
       const { error } = await supabase
         .from("student_balances")
-        .update({ amount_owed: parseFloat(newAmount), notes: balanceNotes || null })
+        .update({ amount_owed: parseFloat(newAmount), notes: balanceNotes || null, updated_by: user?.id })
         .eq("id", existing.id);
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -153,7 +184,7 @@ export default function FinanceDashboard() {
     } else {
       const { error } = await supabase
         .from("student_balances")
-        .insert({ learner_id: selectedLearner, amount_owed: parseFloat(newAmount), notes: balanceNotes || null });
+        .insert({ learner_id: selectedLearner, amount_owed: parseFloat(newAmount), notes: balanceNotes || null, updated_by: user?.id });
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
@@ -167,7 +198,7 @@ export default function FinanceDashboard() {
   const handleVerifySubscription = async (id: string, status: "verified" | "rejected") => {
     const { error } = await supabase
       .from("subscriptions")
-      .update({ status, verified_by: profile?.user_id || null })
+      .update({ status, verified_by: user?.id || null })
       .eq("id", id);
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -247,17 +278,13 @@ export default function FinanceDashboard() {
                           <div>
                             <p className="font-medium text-foreground">{s.learner_name}</p>
                             <p className="text-sm text-muted-foreground">{s.learner_email}</p>
-                            <p className="text-xs text-muted-foreground">
-                              Requested: {new Date(s.created_at).toLocaleDateString()}
-                            </p>
+                            <p className="text-xs text-muted-foreground">Requested: {new Date(s.created_at).toLocaleDateString()}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             <span className={`px-3 py-1 rounded-full text-xs font-bold ${
                               s.status === "pending" ? "bg-accent/10 text-accent" :
                               s.status === "fulfilled" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-                            }`}>
-                              {s.status}
-                            </span>
+                            }`}>{s.status}</span>
                             {s.status === "pending" && (
                               <Button size="sm" onClick={() => { setSelectedStatement(s); setStatementModalOpen(true); }}>
                                 <Send className="w-4 h-4 mr-1" /> Send Statement
@@ -281,14 +308,8 @@ export default function FinanceDashboard() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between flex-wrap gap-4">
                     <h2 className="font-heading text-xl font-semibold text-foreground">Student Balances</h2>
-                    <Input
-                      placeholder="Search students..."
-                      className="max-w-xs"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                    <Input placeholder="Search students..." className="max-w-xs" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                   </div>
-                  {/* List all profiles as potential students */}
                   <div className="space-y-3">
                     {Object.values(profiles)
                       .filter((p: any) => p.grade && (
@@ -304,17 +325,13 @@ export default function FinanceDashboard() {
                               <p className="text-sm text-muted-foreground">{p.grade} • {p.email}</p>
                             </div>
                             <div className="flex items-center gap-3">
-                              <span className="text-lg font-bold text-foreground">
-                                R{balance?.amount_owed?.toFixed(2) || "0.00"}
-                              </span>
+                              <span className="text-lg font-bold text-foreground">R{balance?.amount_owed?.toFixed(2) || "0.00"}</span>
                               <Button size="sm" variant="outline" onClick={() => {
                                 setSelectedLearner(p.user_id);
                                 setNewAmount(balance?.amount_owed?.toString() || "");
                                 setBalanceNotes(balance?.notes || "");
                                 setBalanceModalOpen(true);
-                              }}>
-                                Update
-                              </Button>
+                              }}>Update</Button>
                             </div>
                           </div>
                         );
@@ -335,9 +352,7 @@ export default function FinanceDashboard() {
                         <div key={sub.id} className="glass-card p-4 flex items-center justify-between">
                           <div>
                             <p className="font-medium text-foreground">{sub.learner_name}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {sub.month} {sub.year} • R{sub.amount.toFixed(2)}
-                            </p>
+                            <p className="text-sm text-muted-foreground">{sub.month} {sub.year} • R{sub.amount.toFixed(2)}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             {sub.payment_proof_url && (
@@ -349,17 +364,13 @@ export default function FinanceDashboard() {
                               sub.status === "verified" ? "bg-primary/10 text-primary" :
                               sub.status === "rejected" ? "bg-destructive/10 text-destructive" :
                               "bg-accent/10 text-accent"
-                            }`}>
-                              {sub.status}
-                            </span>
+                            }`}>{sub.status}</span>
                             {sub.status === "pending" && (
                               <>
                                 <Button size="sm" onClick={() => handleVerifySubscription(sub.id, "verified")}>
                                   <CheckCircle className="w-4 h-4 mr-1" /> Verify
                                 </Button>
-                                <Button size="sm" variant="destructive" onClick={() => handleVerifySubscription(sub.id, "rejected")}>
-                                  Reject
-                                </Button>
+                                <Button size="sm" variant="destructive" onClick={() => handleVerifySubscription(sub.id, "rejected")}>Reject</Button>
                               </>
                             )}
                           </div>
@@ -373,7 +384,7 @@ export default function FinanceDashboard() {
           )}
         </div>
 
-        {/* Statement Response Modal */}
+        {/* Statement Response Modal - Now with file upload */}
         <Dialog open={statementModalOpen} onOpenChange={setStatementModalOpen}>
           <DialogContent>
             <DialogHeader>
@@ -381,15 +392,18 @@ export default function FinanceDashboard() {
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
-                <label className="text-sm font-medium text-foreground">Statement URL (upload link)</label>
+                <Label>Upload Statement Document *</Label>
                 <Input
-                  value={statementUrl}
-                  onChange={(e) => setStatementUrl(e.target.value)}
-                  placeholder="Paste statement file URL..."
+                  type="file"
+                  accept=".pdf,.doc,.docx,.jpg,.png"
+                  onChange={(e) => setStatementFile(e.target.files?.[0] || null)}
+                  className="mt-1"
                 />
+                {statementFile && <p className="text-xs text-primary mt-1">{statementFile.name}</p>}
               </div>
-              <Button onClick={handleFulfillStatement} className="w-full">
-                <Send className="w-4 h-4 mr-2" /> Send Statement
+              <Button onClick={handleFulfillStatement} className="w-full" disabled={uploading || !statementFile}>
+                {uploading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Send className="w-4 h-4 mr-2" />}
+                Send Statement
               </Button>
             </div>
           </DialogContent>
@@ -403,21 +417,12 @@ export default function FinanceDashboard() {
             </DialogHeader>
             <div className="space-y-4 mt-4">
               <div>
-                <label className="text-sm font-medium text-foreground">Amount Owed (R)</label>
-                <Input
-                  type="number"
-                  value={newAmount}
-                  onChange={(e) => setNewAmount(e.target.value)}
-                  placeholder="0.00"
-                />
+                <Label>Amount Owed (R)</Label>
+                <Input type="number" value={newAmount} onChange={(e) => setNewAmount(e.target.value)} placeholder="0.00" />
               </div>
               <div>
-                <label className="text-sm font-medium text-foreground">Notes</label>
-                <Textarea
-                  value={balanceNotes}
-                  onChange={(e) => setBalanceNotes(e.target.value)}
-                  placeholder="Optional notes..."
-                />
+                <Label>Notes (optional)</Label>
+                <Textarea value={balanceNotes} onChange={(e) => setBalanceNotes(e.target.value)} placeholder="Any notes..." rows={3} />
               </div>
               <Button onClick={handleUpdateBalance} className="w-full">Update Balance</Button>
             </div>
