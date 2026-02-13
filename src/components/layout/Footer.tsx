@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { GraduationCap, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import { Mail, Phone, MapPin, Facebook, Twitter, Instagram, Youtube } from "lucide-react";
+import schoolLogo from "@/assets/school-logo.png";
 
 const footerLinks = {
   quickLinks: [
@@ -29,12 +30,13 @@ export function Footer() {
           {/* School Info */}
           <div className="lg:col-span-1">
             <Link to="/" className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-                <GraduationCap className="w-7 h-7 text-primary-foreground" />
+              <div className="w-12 h-12 rounded-xl overflow-hidden bg-white flex items-center justify-center">
+                <img src={schoolLogo} alt="Ogwini School Logo" className="w-full h-full object-contain p-1" />
               </div>
               <div>
                 <span className="font-heading font-bold text-lg text-foreground">Ogwini</span>
                 <p className="text-xs text-muted-foreground">Technical High School</p>
+                <p className="text-[10px] text-primary font-semibold italic tracking-wide">DEEDS NOT WORDS</p>
               </div>
             </Link>
             <p className="text-muted-foreground text-sm mb-4">

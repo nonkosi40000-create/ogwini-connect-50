@@ -560,6 +560,7 @@ export type Database = {
           avatar_url: string | null
           class: string | null
           created_at: string
+          department_id: string | null
           elective_subjects: string[] | null
           email: string
           first_name: string
@@ -579,6 +580,7 @@ export type Database = {
           avatar_url?: string | null
           class?: string | null
           created_at?: string
+          department_id?: string | null
           elective_subjects?: string[] | null
           email: string
           first_name: string
@@ -598,6 +600,7 @@ export type Database = {
           avatar_url?: string | null
           class?: string | null
           created_at?: string
+          department_id?: string | null
           elective_subjects?: string[] | null
           email?: string
           first_name?: string
@@ -612,7 +615,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       quiz_questions: {
         Row: {
@@ -744,6 +755,7 @@ export type Database = {
           admin_notes: string | null
           class: string | null
           created_at: string
+          department_id: string | null
           elective_subjects: string[] | null
           email: string
           first_name: string
@@ -769,6 +781,7 @@ export type Database = {
           admin_notes?: string | null
           class?: string | null
           created_at?: string
+          department_id?: string | null
           elective_subjects?: string[] | null
           email: string
           first_name: string
@@ -794,6 +807,7 @@ export type Database = {
           admin_notes?: string | null
           class?: string | null
           created_at?: string
+          department_id?: string | null
           elective_subjects?: string[] | null
           email?: string
           first_name?: string
@@ -814,7 +828,15 @@ export type Database = {
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "registrations_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       statement_requests: {
         Row: {
@@ -1043,6 +1065,42 @@ export type Database = {
           teacher_id?: string
           term?: string | null
           year?: number | null
+        }
+        Relationships: []
+      }
+      timetables: {
+        Row: {
+          class: string | null
+          created_at: string
+          file_url: string
+          grade: string
+          id: string
+          timetable_type: string
+          title: string
+          updated_at: string
+          uploaded_by: string | null
+        }
+        Insert: {
+          class?: string | null
+          created_at?: string
+          file_url: string
+          grade: string
+          id?: string
+          timetable_type?: string
+          title: string
+          updated_at?: string
+          uploaded_by?: string | null
+        }
+        Update: {
+          class?: string | null
+          created_at?: string
+          file_url?: string
+          grade?: string
+          id?: string
+          timetable_type?: string
+          title?: string
+          updated_at?: string
+          uploaded_by?: string | null
         }
         Relationships: []
       }
