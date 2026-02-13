@@ -35,6 +35,7 @@ interface Registration {
   parent_phone: string | null;
   parent_email: string | null;
   admin_notes?: string | null;
+  elective_subjects?: string[] | null;
 }
 
 interface Profile {
@@ -188,6 +189,7 @@ export default function AdminDashboard() {
           parent_name: reg.parent_name,
           parent_phone: reg.parent_phone,
           parent_email: reg.parent_email,
+          elective_subjects: (reg as any).elective_subjects || [],
         }, { onConflict: 'user_id' });
 
       if (profileError) {

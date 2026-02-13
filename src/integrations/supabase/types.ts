@@ -390,6 +390,7 @@ export type Database = {
           avatar_url: string | null
           class: string | null
           created_at: string
+          elective_subjects: string[] | null
           email: string
           first_name: string
           grade: string | null
@@ -408,6 +409,7 @@ export type Database = {
           avatar_url?: string | null
           class?: string | null
           created_at?: string
+          elective_subjects?: string[] | null
           email: string
           first_name: string
           grade?: string | null
@@ -426,6 +428,7 @@ export type Database = {
           avatar_url?: string | null
           class?: string | null
           created_at?: string
+          elective_subjects?: string[] | null
           email?: string
           first_name?: string
           grade?: string | null
@@ -571,6 +574,7 @@ export type Database = {
           admin_notes: string | null
           class: string | null
           created_at: string
+          elective_subjects: string[] | null
           email: string
           first_name: string
           grade: string | null
@@ -595,6 +599,7 @@ export type Database = {
           admin_notes?: string | null
           class?: string | null
           created_at?: string
+          elective_subjects?: string[] | null
           email: string
           first_name: string
           grade?: string | null
@@ -619,6 +624,7 @@ export type Database = {
           admin_notes?: string | null
           class?: string | null
           created_at?: string
+          elective_subjects?: string[] | null
           email?: string
           first_name?: string
           grade?: string | null

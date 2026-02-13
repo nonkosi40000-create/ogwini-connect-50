@@ -342,8 +342,9 @@ const [formData, setFormData] = useState<FormData>({
               id_document_url: idDocUrl,
               proof_of_address_url: proofAddrUrl,
               report_url: reportUrl,
-              payment_proof_url: paymentUrl,
-              updated_at: new Date().toISOString(),
+            payment_proof_url: paymentUrl,
+            elective_subjects: isLearner && isGrade10Plus ? formData.electiveSubjects : [],
+            updated_at: new Date().toISOString(),
             })
             .eq('user_id', signInData.user.id);
 
@@ -381,6 +382,7 @@ const [formData, setFormData] = useState<FormData>({
             proof_of_address_url: proofAddrUrl,
             report_url: reportUrl,
             payment_proof_url: paymentUrl,
+            elective_subjects: isLearner && isGrade10Plus ? formData.electiveSubjects : [],
           })
           .eq('user_id', authData.user.id);
 
