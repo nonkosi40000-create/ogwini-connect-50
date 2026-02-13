@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
   User, BookOpen, FileText, Calendar, Trophy, Bell, 
-  Download, Clock, Play, ChevronRight, Star, Loader2, Send
+  Download, Clock, Play, ChevronRight, Star, Loader2, Send, MessageSquare, Upload
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -13,16 +13,14 @@ import { TeacherRatingForm } from "@/components/dashboard/TeacherRatingForm";
 import { SubjectCard } from "@/components/dashboard/SubjectCard";
 import { NotificationsPanel } from "@/components/dashboard/NotificationsPanel";
 import { MarksWithFeedback } from "@/components/dashboard/MarksWithFeedback";
-import { SubmissionForm } from "@/components/dashboard/SubmissionForm";
+import { HomeworkSubmissions } from "@/components/dashboard/HomeworkSubmissions";
 import { PastPapers } from "@/components/PastPapers";
 import { ELearningMaterials } from "@/components/dashboard/ELearningMaterials";
 import { SubscriptionPayment } from "@/components/dashboard/SubscriptionPayment";
 import { RequestStatement } from "@/components/dashboard/RequestStatement";
+import { ComplaintForm } from "@/components/dashboard/ComplaintForm";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+  Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 
 interface LearningMaterial {
@@ -76,21 +74,19 @@ export default function LearnerDashboard() {
   // Subject modal
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [subjectModalOpen, setSubjectModalOpen] = useState(false);
-  
-  // Submission form
-  const [submissionOpen, setSubmissionOpen] = useState(false);
-  const [selectedAssignment, setSelectedAssignment] = useState<any>(null);
 
   const tabs = [
     { id: "overview", label: "Overview", icon: User },
     { id: "subjects", label: "My Subjects", icon: BookOpen },
     { id: "results", label: "Results", icon: Trophy },
-    { id: "materials", label: "Learning Materials", icon: FileText },
+    { id: "homework", label: "Homework", icon: Upload },
+    { id: "materials", label: "Materials", icon: FileText },
     { id: "pastpapers", label: "Past Papers", icon: FileText },
     { id: "elearning", label: "E-Learning", icon: BookOpen },
     { id: "subscription", label: "Subscription", icon: Calendar },
-    { id: "statement", label: "Request Statement", icon: FileText },
+    { id: "statement", label: "Statement", icon: FileText },
     { id: "quizzes", label: "Quizzes", icon: Play },
+    { id: "complaints", label: "Complaints", icon: MessageSquare },
     { id: "rate-teacher", label: "Rate Teachers", icon: Star },
     { id: "notifications", label: "Notifications", icon: Bell },
   ];
@@ -98,7 +94,6 @@ export default function LearnerDashboard() {
   const learnerGrade = profile?.grade || '';
   const isGrade10Plus = ["Grade 10", "Grade 11", "Grade 12"].includes(learnerGrade);
   
-  // Get learner's subjects based on grade
   const mySubjects = isGrade10Plus 
     ? [...grade10to12Compulsory, ...(profile?.elective_subjects || [])]
     : grade8to9Subjects;
@@ -106,46 +101,24 @@ export default function LearnerDashboard() {
   const fetchData = async () => {
     setLoading(true);
     
-    // Fetch learning materials
-    const { data: materialsData } = await supabase
-      .from('learning_materials')
-      .select('*')
-      .order('created_at', { ascending: false });
-    
-    if (materialsData) setMaterials(materialsData);
+    const [materialsRes, quizzesRes, announcementsRes] = await Promise.all([
+      supabase.from('learning_materials').select('*').order('created_at', { ascending: false }),
+      supabase.from('quizzes').select('*').eq('status', 'published').order('created_at', { ascending: false }),
+      supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(20),
+    ]);
 
-    // Fetch published quizzes filtered by learner grade
-    const quizQuery = supabase
-      .from('quizzes')
-      .select('*')
-      .eq('status', 'published')
-      .order('created_at', { ascending: false });
+    if (materialsRes.data) setMaterials(materialsRes.data);
     
-    if (learnerGrade) {
-      quizQuery.eq('grade', learnerGrade);
+    if (quizzesRes.data) {
+      setQuizzes(learnerGrade ? quizzesRes.data.filter(q => q.grade === learnerGrade) : quizzesRes.data);
     }
     
-    const { data: quizzesData } = await quizQuery;
-    
-    if (quizzesData) setQuizzes(quizzesData);
-
-    // Fetch announcements
-    const { data: announcementsData } = await supabase
-      .from('announcements')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(20);
-    
-    if (announcementsData) setAnnouncements(announcementsData);
-
+    if (announcementsRes.data) setAnnouncements(announcementsRes.data);
     setLoading(false);
   };
 
-  useEffect(() => {
-    fetchData();
-  }, [learnerGrade]);
+  useEffect(() => { fetchData(); }, [learnerGrade]);
 
-  // Filter materials by learner's grade and selected subject
   const filteredMaterials = materials.filter(m => 
     (!m.grade || m.grade === learnerGrade) &&
     (m.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -224,7 +197,6 @@ export default function LearnerDashboard() {
               {/* Overview Tab */}
               {activeTab === "overview" && (
                 <div className="grid lg:grid-cols-3 gap-6">
-                  {/* Quick Stats & Actions */}
                   <div className="lg:col-span-2 space-y-6">
                     <div className="grid sm:grid-cols-3 gap-4">
                       <div className="glass-card p-4">
@@ -282,9 +254,7 @@ export default function LearnerDashboard() {
                             </div>
                             <div>
                               <span className="text-sm font-medium text-foreground">{subject}</span>
-                              <p className="text-xs text-muted-foreground">
-                                {getSubjectMaterials(subject).length} materials
-                              </p>
+                              <p className="text-xs text-muted-foreground">{getSubjectMaterials(subject).length} materials</p>
                             </div>
                           </button>
                         ))}
@@ -307,9 +277,7 @@ export default function LearnerDashboard() {
                               <p className="text-xs text-muted-foreground">{material.subject} • {material.type}</p>
                             </div>
                             <a href={material.file_url} target="_blank" rel="noopener noreferrer">
-                              <Button variant="ghost" size="sm">
-                                <Download className="w-4 h-4" />
-                              </Button>
+                              <Button variant="ghost" size="sm"><Download className="w-4 h-4" /></Button>
                             </a>
                           </div>
                         ))}
@@ -320,19 +288,20 @@ export default function LearnerDashboard() {
                     </div>
                   </div>
 
-                  {/* Notifications Sidebar */}
+                  {/* Sidebar */}
                   <div className="space-y-6">
                     <NotificationsPanel notifications={announcements} />
-                    
-                    {/* Quick Actions */}
                     <div className="glass-card p-6">
                       <h3 className="font-heading font-semibold text-foreground mb-4">Quick Actions</h3>
                       <div className="space-y-2">
-                        <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab("rate-teacher")}>
-                          <Star className="w-4 h-4 mr-2" /> Rate a Teacher
+                        <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab("homework")}>
+                          <Upload className="w-4 h-4 mr-2" /> Submit Homework
                         </Button>
                         <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab("results")}>
                           <Trophy className="w-4 h-4 mr-2" /> View My Results
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab("complaints")}>
+                          <MessageSquare className="w-4 h-4 mr-2" /> Lodge Complaint
                         </Button>
                         <Button variant="outline" className="w-full justify-start" onClick={() => setActiveTab("pastpapers")}>
                           <FileText className="w-4 h-4 mr-2" /> Past Papers
@@ -346,7 +315,7 @@ export default function LearnerDashboard() {
               {/* Subjects Tab */}
               {activeTab === "subjects" && (
                 <div className="space-y-6">
-                  <h2 className="font-heading text-xl font-semibold text-foreground">My Subjects</h2>
+                  <h2 className="font-heading text-xl font-semibold text-foreground">My Subjects ({mySubjects.length})</h2>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {mySubjects.map((subject) => (
                       <SubjectCard
@@ -367,19 +336,21 @@ export default function LearnerDashboard() {
                 </div>
               )}
 
+              {/* Homework Tab */}
+              {activeTab === "homework" && (
+                <div className="max-w-4xl mx-auto">
+                  <h2 className="font-heading text-xl font-semibold text-foreground mb-6">Homework & Assignments</h2>
+                  <HomeworkSubmissions />
+                </div>
+              )}
+
               {/* Learning Materials Tab */}
               {activeTab === "materials" && (
                 <div className="space-y-6">
                   <div className="flex items-center justify-between flex-wrap gap-4">
                     <h2 className="font-heading text-xl font-semibold text-foreground">Learning Materials</h2>
-                    <Input 
-                      placeholder="Search materials..." 
-                      className="max-w-xs" 
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+                    <Input placeholder="Search materials..." className="max-w-xs" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
                   </div>
-                  
                   {filteredMaterials.length > 0 ? (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {filteredMaterials.map((material) => (
@@ -389,13 +360,9 @@ export default function LearnerDashboard() {
                           </div>
                           <h4 className="font-medium text-foreground text-sm mb-1">{material.title}</h4>
                           <p className="text-xs text-muted-foreground mb-3">{material.subject} • {material.type}</p>
-                          {material.description && (
-                            <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{material.description}</p>
-                          )}
+                          {material.description && <p className="text-xs text-muted-foreground mb-3 line-clamp-2">{material.description}</p>}
                           <a href={material.file_url} target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" size="sm" className="w-full">
-                              <Download className="w-4 h-4 mr-2" /> Download
-                            </Button>
+                            <Button variant="outline" size="sm" className="w-full"><Download className="w-4 h-4 mr-2" /> Download</Button>
                           </a>
                         </div>
                       ))}
@@ -403,10 +370,7 @@ export default function LearnerDashboard() {
                   ) : (
                     <div className="glass-card p-8 text-center">
                       <BookOpen className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-heading text-lg font-semibold text-foreground mb-2">No Materials Found</h3>
-                      <p className="text-muted-foreground">
-                        {searchQuery ? 'Try a different search term' : 'Learning materials will appear here when uploaded by teachers.'}
-                      </p>
+                      <p className="text-muted-foreground">{searchQuery ? 'Try a different search term' : 'Learning materials will appear here when uploaded by teachers.'}</p>
                     </div>
                   )}
                 </div>
@@ -416,7 +380,7 @@ export default function LearnerDashboard() {
               {activeTab === "pastpapers" && (
                 <div className="space-y-6">
                   <h2 className="font-heading text-xl font-semibold text-foreground">Past Papers</h2>
-                  <PastPapers />
+                  <PastPapers filterGrade={learnerGrade} />
                 </div>
               )}
 
@@ -430,16 +394,16 @@ export default function LearnerDashboard() {
 
               {/* Subscription Tab */}
               {activeTab === "subscription" && (
-                <div className="max-w-3xl mx-auto space-y-6">
-                  <h2 className="font-heading text-xl font-semibold text-foreground">Monthly Subscription</h2>
+                <div className="max-w-3xl mx-auto">
+                  <h2 className="font-heading text-xl font-semibold text-foreground mb-6">Monthly Subscription</h2>
                   <SubscriptionPayment />
                 </div>
               )}
 
               {/* Request Statement Tab */}
               {activeTab === "statement" && (
-                <div className="max-w-2xl mx-auto space-y-6">
-                  <h2 className="font-heading text-xl font-semibold text-foreground">Financial Statement</h2>
+                <div className="max-w-2xl mx-auto">
+                  <h2 className="font-heading text-xl font-semibold text-foreground mb-6">Financial Statement</h2>
                   <RequestStatement />
                 </div>
               )}
@@ -448,7 +412,6 @@ export default function LearnerDashboard() {
               {activeTab === "quizzes" && (
                 <div className="space-y-6">
                   <h2 className="font-heading text-xl font-semibold text-foreground">Available Quizzes</h2>
-                  
                   {quizzes.length > 0 ? (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
                       {quizzes.map((quiz) => (
@@ -457,24 +420,29 @@ export default function LearnerDashboard() {
                           <p className="text-sm text-muted-foreground mb-2">{quiz.subject} • {quiz.grade}</p>
                           <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
                             <Clock className="w-4 h-4" />
-                            <span>{quiz.duration_minutes || 30} minutes</span>
+                            <span>{quiz.duration_minutes || 30} min</span>
                             <span>•</span>
                             <Trophy className="w-4 h-4" />
                             <span>{quiz.total_marks || 100} marks</span>
                           </div>
-                          <Button className="w-full">
-                            <Play className="w-4 h-4 mr-2" /> Start Quiz
-                          </Button>
+                          <Button className="w-full"><Play className="w-4 h-4 mr-2" /> Start Quiz</Button>
                         </div>
                       ))}
                     </div>
                   ) : (
                     <div className="glass-card p-8 text-center">
                       <Play className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-heading text-lg font-semibold text-foreground mb-2">No Quizzes Available</h3>
                       <p className="text-muted-foreground">Quizzes will appear here when published by your teachers.</p>
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Complaints Tab */}
+              {activeTab === "complaints" && (
+                <div className="max-w-2xl mx-auto">
+                  <h2 className="font-heading text-xl font-semibold text-foreground mb-6">Lodge a Complaint</h2>
+                  <ComplaintForm />
                 </div>
               )}
 
@@ -482,12 +450,8 @@ export default function LearnerDashboard() {
               {activeTab === "rate-teacher" && (
                 <div className="max-w-2xl mx-auto space-y-6">
                   <h2 className="font-heading text-xl font-semibold text-foreground">Rate Your Teachers</h2>
-                  <p className="text-muted-foreground">
-                    Your feedback helps improve teaching quality. All ratings are anonymous.
-                  </p>
-                  <div className="glass-card p-6">
-                    <TeacherRatingForm />
-                  </div>
+                  <p className="text-muted-foreground">Your feedback helps improve teaching quality. All ratings are anonymous.</p>
+                  <div className="glass-card p-6"><TeacherRatingForm /></div>
                 </div>
               )}
 
@@ -518,14 +482,10 @@ export default function LearnerDashboard() {
                     <div>
                       <h4 className="font-medium text-foreground">{material.title}</h4>
                       <p className="text-sm text-muted-foreground">{material.type}</p>
-                      {material.description && (
-                        <p className="text-sm text-muted-foreground mt-1">{material.description}</p>
-                      )}
+                      {material.description && <p className="text-sm text-muted-foreground mt-1">{material.description}</p>}
                     </div>
                     <a href={material.file_url} target="_blank" rel="noopener noreferrer">
-                      <Button variant="outline" size="sm">
-                        <Download className="w-4 h-4 mr-2" /> Download
-                      </Button>
+                      <Button variant="outline" size="sm"><Download className="w-4 h-4 mr-2" /> Download</Button>
                     </a>
                   </div>
                 ))
@@ -538,14 +498,6 @@ export default function LearnerDashboard() {
             </div>
           </DialogContent>
         </Dialog>
-
-        {/* Submission Form */}
-        <SubmissionForm
-          isOpen={submissionOpen}
-          onClose={() => setSubmissionOpen(false)}
-          assignment={selectedAssignment}
-          userId={user?.id || ""}
-        />
       </div>
     </Layout>
   );

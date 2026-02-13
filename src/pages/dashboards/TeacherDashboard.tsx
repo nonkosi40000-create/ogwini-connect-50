@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { PastPapers } from "@/components/PastPapers";
+import { TeacherHomeworkReview } from "@/components/dashboard/TeacherHomeworkReview";
 
 interface LearningMaterial {
   id: string;
@@ -93,6 +94,7 @@ export default function TeacherDashboard() {
     { id: "quizzes", label: "Quizzes & Tests", icon: ClipboardCheck },
     { id: "attendance", label: "Attendance", icon: Calendar },
     { id: "marks", label: "Marks & Feedback", icon: FileText },
+    { id: "submissions", label: "Submissions", icon: FileText },
     { id: "communicate", label: "Communicate", icon: MessageSquare },
   ];
 

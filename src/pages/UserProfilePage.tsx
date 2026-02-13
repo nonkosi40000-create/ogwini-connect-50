@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   User, Mail, Phone, MapPin, Save, Download, FileText, 
-  CreditCard, GraduationCap, LogOut, Edit2, X, Check 
+  CreditCard, GraduationCap, LogOut, Edit2, X, Check, Loader2, Eye
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -19,12 +19,32 @@ const bankingDetails = {
   branchCode: "250655",
 };
 
+interface AcademicReport {
+  id: string;
+  title: string;
+  term: string | null;
+  year: number | null;
+  file_url: string;
+  created_at: string;
+}
+
+interface RegistrationDoc {
+  id_document_url: string | null;
+  proof_of_address_url: string | null;
+  report_url: string | null;
+  payment_proof_url: string | null;
+}
+
 export default function UserProfilePage() {
-  const { user, profile, signOut, loading } = useAuth();
+  const { user, profile, signOut, loading, role } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [reports, setReports] = useState<AcademicReport[]>([]);
+  const [regDocs, setRegDocs] = useState<RegistrationDoc | null>(null);
+  const [balance, setBalance] = useState<number | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
   
   const [editableData, setEditableData] = useState({
     phone: "",
@@ -52,11 +72,26 @@ export default function UserProfilePage() {
     }
   }, [user, loading, navigate]);
 
+  useEffect(() => {
+    if (!user) return;
+    const fetchExtra = async () => {
+      setLoadingData(true);
+      const [reportsRes, regRes, balanceRes] = await Promise.all([
+        supabase.from("academic_reports").select("*").eq("learner_id", user.id).order("created_at", { ascending: false }),
+        supabase.from("registrations").select("id_document_url, proof_of_address_url, report_url, payment_proof_url").eq("user_id", user.id).maybeSingle(),
+        supabase.from("student_balances").select("amount_owed").eq("learner_id", user.id).maybeSingle(),
+      ]);
+      if (reportsRes.data) setReports(reportsRes.data as AcademicReport[]);
+      if (regRes.data) setRegDocs(regRes.data);
+      if (balanceRes.data) setBalance(balanceRes.data.amount_owed);
+      setLoadingData(false);
+    };
+    fetchExtra();
+  }, [user]);
+
   const handleSaveChanges = async () => {
     if (!user) return;
-    
     setIsSaving(true);
-    
     const { error } = await supabase
       .from("profiles")
       .update({
@@ -68,19 +103,11 @@ export default function UserProfilePage() {
       .eq("user_id", user.id);
 
     if (error) {
-      toast({
-        title: "Update Failed",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast({ title: "Update Failed", description: error.message, variant: "destructive" });
     } else {
-      toast({
-        title: "Profile Updated",
-        description: "Your information has been saved successfully.",
-      });
+      toast({ title: "Profile Updated", description: "Your information has been saved successfully." });
       setIsEditing(false);
     }
-    
     setIsSaving(false);
   };
 
@@ -89,44 +116,35 @@ export default function UserProfilePage() {
     navigate("/");
   };
 
-  // Mock academic reports - in real app, fetch from database
-  const academicReports = [
-    { id: 1, term: "Term 1 2024", subject: "Mathematics", mark: 78, grade: "B" },
-    { id: 2, term: "Term 1 2024", subject: "English", mark: 85, grade: "A" },
-    { id: 3, term: "Term 1 2024", subject: "Science", mark: 72, grade: "B" },
-    { id: 4, term: "Term 1 2024", subject: "Technical Drawing", mark: 88, grade: "A" },
-  ];
-
-  const downloadReport = (term: string) => {
-    toast({
-      title: "Download Started",
-      description: `Downloading ${term} report...`,
-    });
-    // In real app, this would trigger actual file download
-  };
-
   if (loading) {
     return (
       <Layout>
         <div className="min-h-screen flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
         </div>
       </Layout>
     );
   }
 
+  const docLinks = [
+    { label: "ID Document", url: regDocs?.id_document_url },
+    { label: "Proof of Address", url: regDocs?.proof_of_address_url },
+    { label: "School Report", url: regDocs?.report_url },
+    { label: "Payment Proof", url: regDocs?.payment_proof_url },
+  ].filter(d => d.url);
+
   return (
     <Layout>
       {/* Header */}
-      <section className="py-16 lg:py-20 bg-dark text-white">
+      <section className="py-16 lg:py-20 bg-gradient-to-r from-primary to-primary/80">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4">
-                <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center text-3xl font-bold text-white">
+                <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-3xl font-bold text-white">
                   {profile?.first_name?.[0]}{profile?.last_name?.[0]}
                 </div>
-                <div>
+                <div className="text-white">
                   <h1 className="font-heading text-3xl font-bold">
                     {profile?.first_name} {profile?.last_name}
                   </h1>
@@ -134,7 +152,7 @@ export default function UserProfilePage() {
                     Student ID: {profile?.id_number || "N/A"}
                   </p>
                   {profile?.grade && (
-                    <p className="text-primary font-medium">{profile.grade} {profile.class}</p>
+                    <p className="text-white/90 font-medium">{profile.grade} {profile.class ? `• ${profile.class}` : ''}</p>
                   )}
                 </div>
               </div>
@@ -147,7 +165,6 @@ export default function UserProfilePage() {
         </div>
       </section>
 
-      {/* Profile Content */}
       <section className="py-12 lg:py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto space-y-8">
@@ -161,18 +178,15 @@ export default function UserProfilePage() {
                 </h2>
                 {!isEditing ? (
                   <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                    <Edit2 className="w-4 h-4 mr-2" />
-                    Edit
+                    <Edit2 className="w-4 h-4 mr-2" /> Edit
                   </Button>
                 ) : (
                   <div className="flex gap-2">
                     <Button variant="outline" size="sm" onClick={() => setIsEditing(false)}>
-                      <X className="w-4 h-4 mr-2" />
-                      Cancel
+                      <X className="w-4 h-4 mr-2" /> Cancel
                     </Button>
                     <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
-                      <Check className="w-4 h-4 mr-2" />
-                      {isSaving ? "Saving..." : "Save"}
+                      <Check className="w-4 h-4 mr-2" /> {isSaving ? "Saving..." : "Save"}
                     </Button>
                   </div>
                 )}
@@ -189,27 +203,13 @@ export default function UserProfilePage() {
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-sm">Email Address</Label>
-                  {isEditing ? (
-                    <Input
-                      value={editableData.email}
-                      onChange={(e) => setEditableData({ ...editableData, email: e.target.value })}
-                      disabled
-                      className="mt-1"
-                    />
-                  ) : (
-                    <p className="font-medium text-foreground">{profile?.email}</p>
-                  )}
+                  <p className="font-medium text-foreground">{profile?.email}</p>
                   {isEditing && <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>}
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-sm">Phone Number</Label>
                   {isEditing ? (
-                    <Input
-                      value={editableData.phone}
-                      onChange={(e) => setEditableData({ ...editableData, phone: e.target.value })}
-                      placeholder="Enter phone number"
-                      className="mt-1"
-                    />
+                    <Input value={editableData.phone} onChange={(e) => setEditableData({ ...editableData, phone: e.target.value })} className="mt-1" />
                   ) : (
                     <p className="font-medium text-foreground">{profile?.phone || "Not provided"}</p>
                   )}
@@ -217,16 +217,23 @@ export default function UserProfilePage() {
                 <div className="md:col-span-2">
                   <Label className="text-muted-foreground text-sm">Home Address</Label>
                   {isEditing ? (
-                    <Input
-                      value={editableData.address}
-                      onChange={(e) => setEditableData({ ...editableData, address: e.target.value })}
-                      placeholder="Enter home address"
-                      className="mt-1"
-                    />
+                    <Input value={editableData.address} onChange={(e) => setEditableData({ ...editableData, address: e.target.value })} className="mt-1" />
                   ) : (
                     <p className="font-medium text-foreground">{profile?.address || "Not provided"}</p>
                   )}
                 </div>
+                {profile?.grade && (
+                  <>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Grade</Label>
+                      <p className="font-medium text-foreground">{profile.grade}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground text-sm">Class</Label>
+                      <p className="font-medium text-foreground">{profile.class || "N/A"}</p>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Parent/Guardian Info */}
@@ -240,12 +247,7 @@ export default function UserProfilePage() {
                   <div>
                     <Label className="text-muted-foreground text-sm">Parent Phone</Label>
                     {isEditing ? (
-                      <Input
-                        value={editableData.parent_phone}
-                        onChange={(e) => setEditableData({ ...editableData, parent_phone: e.target.value })}
-                        placeholder="Enter parent phone"
-                        className="mt-1"
-                      />
+                      <Input value={editableData.parent_phone} onChange={(e) => setEditableData({ ...editableData, parent_phone: e.target.value })} className="mt-1" />
                     ) : (
                       <p className="font-medium text-foreground">{profile?.parent_phone || "Not provided"}</p>
                     )}
@@ -253,12 +255,7 @@ export default function UserProfilePage() {
                   <div>
                     <Label className="text-muted-foreground text-sm">Parent Email</Label>
                     {isEditing ? (
-                      <Input
-                        value={editableData.parent_email}
-                        onChange={(e) => setEditableData({ ...editableData, parent_email: e.target.value })}
-                        placeholder="Enter parent email"
-                        className="mt-1"
-                      />
+                      <Input value={editableData.parent_email} onChange={(e) => setEditableData({ ...editableData, parent_email: e.target.value })} className="mt-1" />
                     ) : (
                       <p className="font-medium text-foreground">{profile?.parent_email || "Not provided"}</p>
                     )}
@@ -267,54 +264,65 @@ export default function UserProfilePage() {
               </div>
             </div>
 
+            {/* Registration Documents (downloadable) */}
+            {docLinks.length > 0 && (
+              <div className="glass-card p-6 lg:p-8">
+                <h2 className="font-heading text-xl font-semibold text-foreground flex items-center gap-2 mb-6">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Uploaded Documents
+                </h2>
+                <div className="grid sm:grid-cols-2 gap-4">
+                  {docLinks.map((doc) => (
+                    <div key={doc.label} className="flex items-center justify-between p-4 bg-secondary rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <FileText className="w-5 h-5 text-primary" />
+                        <span className="font-medium text-foreground text-sm">{doc.label}</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <a href={doc.url!} target="_blank" rel="noopener noreferrer">
+                          <Button variant="outline" size="sm"><Eye className="w-4 h-4 mr-1" /> View</Button>
+                        </a>
+                        <a href={doc.url!} download>
+                          <Button size="sm"><Download className="w-4 h-4 mr-1" /> Download</Button>
+                        </a>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Academic Reports */}
             <div className="glass-card p-6 lg:p-8">
               <h2 className="font-heading text-xl font-semibold text-foreground flex items-center gap-2 mb-6">
                 <GraduationCap className="w-5 h-5 text-primary" />
                 Academic Reports
               </h2>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-secondary rounded-lg">
-                  <div>
-                    <p className="font-medium text-foreground">Term 1 2024 Report</p>
-                    <p className="text-sm text-muted-foreground">Available for download</p>
-                  </div>
-                  <Button size="sm" onClick={() => downloadReport("Term 1 2024")}>
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
+              {loadingData ? (
+                <div className="text-center py-8"><Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" /></div>
+              ) : reports.length > 0 ? (
+                <div className="space-y-3">
+                  {reports.map((report) => (
+                    <div key={report.id} className="flex items-center justify-between p-4 bg-secondary rounded-lg">
+                      <div>
+                        <p className="font-medium text-foreground">{report.title}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {report.term && `${report.term} • `}{report.year}
+                        </p>
+                      </div>
+                      <a href={report.file_url} target="_blank" rel="noopener noreferrer">
+                        <Button size="sm"><Download className="w-4 h-4 mr-2" /> Download</Button>
+                      </a>
+                    </div>
+                  ))}
                 </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Subject</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Mark</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-muted-foreground">Grade</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {academicReports.map((report) => (
-                        <tr key={report.id} className="border-b border-border last:border-0">
-                          <td className="py-3 px-4 text-foreground">{report.subject}</td>
-                          <td className="py-3 px-4 text-foreground">{report.mark}%</td>
-                          <td className="py-3 px-4">
-                            <span className={`px-2 py-1 rounded text-xs font-medium ${
-                              report.grade === "A" ? "bg-primary/10 text-primary" :
-                              report.grade === "B" ? "bg-accent/10 text-accent" :
-                              "bg-secondary text-muted-foreground"
-                            }`}>
-                              {report.grade}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <GraduationCap className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                  <p>No academic reports uploaded yet.</p>
+                  <p className="text-sm">Reports will appear here once your teachers upload them.</p>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* School Fees & Banking */}
@@ -323,49 +331,33 @@ export default function UserProfilePage() {
                 <CreditCard className="w-5 h-5 text-primary" />
                 School Fees & Banking Details
               </h2>
-
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="bg-secondary rounded-xl p-6">
                   <h3 className="font-semibold text-foreground mb-4">Outstanding Fees</h3>
                   <div className="space-y-3">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Tuition 2024</span>
-                      <span className="font-medium text-foreground">R 15,000.00</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Amount Paid</span>
-                      <span className="font-medium text-primary">R 10,000.00</span>
-                    </div>
-                    <div className="border-t border-border pt-3 flex justify-between">
-                      <span className="font-medium text-foreground">Balance Due</span>
-                      <span className="font-bold text-destructive">R 5,000.00</span>
+                      <span className="text-muted-foreground">Balance Due</span>
+                      <span className="font-bold text-xl text-foreground">
+                        R{balance !== null ? balance.toFixed(2) : "0.00"}
+                      </span>
                     </div>
                   </div>
                 </div>
-
-                <div className="bg-dark text-white rounded-xl p-6">
+                <div className="bg-gradient-to-br from-primary to-primary/80 text-white rounded-xl p-6">
                   <h3 className="font-semibold mb-4">Bank Details for Payment</h3>
                   <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-white/70">Bank</span>
-                      <span className="font-medium">{bankingDetails.bankName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-white/70">Account Name</span>
-                      <span className="font-medium text-xs">{bankingDetails.accountName}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-white/70">Account Number</span>
-                      <span className="font-medium">{bankingDetails.accountNumber}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-white/70">Branch Code</span>
-                      <span className="font-medium">{bankingDetails.branchCode}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-white/70">Reference</span>
-                      <span className="font-medium text-primary">{profile?.id_number || "Your ID Number"}</span>
-                    </div>
+                    {[
+                      { label: "Bank", value: bankingDetails.bankName },
+                      { label: "Account Name", value: bankingDetails.accountName },
+                      { label: "Account Number", value: bankingDetails.accountNumber },
+                      { label: "Branch Code", value: bankingDetails.branchCode },
+                      { label: "Reference", value: profile?.id_number || "Your ID Number" },
+                    ].map((item) => (
+                      <div key={item.label} className="flex justify-between">
+                        <span className="text-white/70">{item.label}</span>
+                        <span className="font-medium">{item.value}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
