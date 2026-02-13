@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ interface FormData {
   // Staff-specific
   gradeTeaching: string;
   subjects: string[];
+  departmentId: string;
 }
 
 interface UploadedFiles {
@@ -128,6 +129,25 @@ const bankingDetails = {
   reference: "REG-[YOUR ID NUMBER]",
 };
 
+// Department selector for teaching staff
+function DepartmentSelector({ departmentId, onChange }: { departmentId: string; onChange: (val: string) => void }) {
+  const [depts, setDepts] = useState<{ id: string; name: string; code: string }[]>([]);
+  useEffect(() => {
+    supabase.from('departments').select('*').order('name').then(({ data }) => {
+      if (data) setDepts(data);
+    });
+  }, []);
+  return (
+    <div>
+      <Label htmlFor="departmentId">Department *</Label>
+      <select id="departmentId" value={departmentId} onChange={(e) => onChange(e.target.value)} required className="w-full h-11 px-4 rounded-lg bg-secondary border border-input text-foreground">
+        <option value="">Select your department</option>
+        {depts.map(d => <option key={d.id} value={d.id}>{d.name} ({d.code})</option>)}
+      </select>
+    </div>
+  );
+}
+
 export default function RegistrationPage() {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -161,6 +181,7 @@ const [formData, setFormData] = useState<FormData>({
     parentAddress: "",
     gradeTeaching: "",
     subjects: [],
+    departmentId: "",
   });
 
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFiles>({
@@ -344,6 +365,7 @@ const [formData, setFormData] = useState<FormData>({
               report_url: reportUrl,
             payment_proof_url: paymentUrl,
             elective_subjects: isLearner && isGrade10Plus ? formData.electiveSubjects : [],
+            department_id: isTeachingStaff && formData.departmentId ? formData.departmentId : null,
             updated_at: new Date().toISOString(),
             })
             .eq('user_id', signInData.user.id);
@@ -383,6 +405,7 @@ const [formData, setFormData] = useState<FormData>({
             report_url: reportUrl,
             payment_proof_url: paymentUrl,
             elective_subjects: isLearner && isGrade10Plus ? formData.electiveSubjects : [],
+            department_id: isTeachingStaff && formData.departmentId ? formData.departmentId : null,
           })
           .eq('user_id', authData.user.id);
 
@@ -867,6 +890,7 @@ const [formData, setFormData] = useState<FormData>({
                       <Briefcase className="w-5 h-5 text-primary" />
                       Professional Information
                     </h2>
+                    <DepartmentSelector departmentId={formData.departmentId} onChange={(val) => setFormData({ ...formData, departmentId: val })} />
                     <div>
                       <Label htmlFor="gradeTeaching">Grade You Will Be Teaching *</Label>
                       <select id="gradeTeaching" name="gradeTeaching" value={formData.gradeTeaching} onChange={handleChange} required className="w-full h-11 px-4 rounded-lg bg-secondary border border-input text-foreground">
