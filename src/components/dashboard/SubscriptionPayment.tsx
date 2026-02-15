@@ -61,7 +61,19 @@ export function SubscriptionPayment() {
     }
 
     setSubmitting(true);
-    const filePath = `subscriptions/${user.id}/${currentYear}_${selectedMonth}_${file.name}`;
+    
+    // Fetch profile to get name and grade for the file reference
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("first_name, last_name, grade")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    
+    const nameRef = profileData
+      ? `${profileData.first_name}_${profileData.last_name}_${(profileData.grade || 'NoGrade').replace(/\s/g, '')}`
+      : user.id;
+    
+    const filePath = `subscriptions/${nameRef}_${currentYear}_${selectedMonth}_${file.name}`;
     const { error: uploadError } = await supabase.storage
       .from("subscription-proofs")
       .upload(filePath, file);

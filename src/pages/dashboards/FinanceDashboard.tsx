@@ -46,6 +46,7 @@ interface Subscription {
   status: string;
   payment_proof_url: string | null;
   learner_name?: string;
+  learner_grade?: string;
 }
 
 export default function FinanceDashboard() {
@@ -113,6 +114,7 @@ export default function FinanceDashboard() {
       setSubscriptions(subsRes.data.map((s) => ({
         ...s,
         learner_name: profileMap[s.learner_id] ? `${profileMap[s.learner_id].first_name} ${profileMap[s.learner_id].last_name}` : "Unknown",
+        learner_grade: profileMap[s.learner_id]?.grade || "",
       })));
     }
 
@@ -353,7 +355,7 @@ export default function FinanceDashboard() {
                         <div key={sub.id} className="glass-card p-4 flex items-center justify-between">
                           <div>
                             <p className="font-medium text-foreground">{sub.learner_name}</p>
-                            <p className="text-sm text-muted-foreground">{sub.month} {sub.year} • R{sub.amount.toFixed(2)}</p>
+                            <p className="text-sm text-muted-foreground">{sub.learner_grade && `${sub.learner_grade} • `}{sub.month} {sub.year} • R{sub.amount.toFixed(2)}</p>
                           </div>
                           <div className="flex items-center gap-2">
                             {sub.payment_proof_url && (
