@@ -360,7 +360,25 @@ export default function AdminDashboard() {
       });
       if (insertErr) throw insertErr;
 
-      toast({ title: "Timetable Published", description: `"${ttTitle}" is now visible to ${ttGrade} ${ttClass || 'all classes'}.` });
+      // Notify learners in this grade about the new timetable
+      const { data: gradeLearners } = await supabase
+        .from('profiles')
+        .select('user_id')
+        .eq('grade', ttGrade);
+
+      if (gradeLearners && gradeLearners.length > 0) {
+        const notifications = gradeLearners.map((learner) => ({
+          user_id: learner.user_id,
+          title: "New Timetable Available",
+          message: `A new timetable "${ttTitle}" has been published for ${ttGrade}${ttClass ? ` (${ttClass})` : ''}.`,
+          type: "timetable",
+          link_url: urlData.publicUrl,
+          link_label: "Download Timetable",
+        }));
+        await supabase.from('notifications').insert(notifications);
+      }
+
+      toast({ title: "Timetable Published", description: `"${ttTitle}" is now visible to ${ttGrade} ${ttClass || 'all classes'}. Learners have been notified.` });
       setTtTitle("");
       setTtGrade("");
       setTtClass("");
