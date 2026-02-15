@@ -86,7 +86,20 @@ export function TeacherHomeworkReview() {
 
       if (error) throw error;
 
-      toast({ title: "Marked!", description: "The submission has been marked and feedback sent." });
+      // Send notification to learner
+      const learner = profiles[selectedSub.learner_id];
+      const material = selectedSub.material_id ? materials[selectedSub.material_id] : null;
+      const pct = Math.round((parseFloat(marksObtained) / parseFloat(totalMarks)) * 100);
+      await supabase.from("notifications").insert({
+        user_id: selectedSub.learner_id,
+        title: "Homework Marked",
+        message: `Your submission for "${material?.title || 'Assignment'}" has been marked. You scored ${marksObtained}/${totalMarks} (${pct}%).${feedback ? ` Feedback: ${feedback}` : ''}`,
+        type: "homework",
+        link_url: markedFileUrl || null,
+        link_label: markedFileUrl ? "Download Marked Copy" : null,
+      });
+
+      toast({ title: "Marked!", description: "The submission has been marked and the learner has been notified." });
       setMarkModalOpen(false);
       setMarksObtained("");
       setFeedback("");
