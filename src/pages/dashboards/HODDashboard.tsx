@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,41 +9,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import {
-  Building2,
-  BookOpen,
-  FileText,
-  Plus,
-  Users,
-  CheckCircle,
-  Clock,
-  Upload,
-  Loader2,
-  Star,
+  Building2, BookOpen, FileText, Plus, Users, CheckCircle, Clock,
+  Upload, Loader2, Star, BarChart3, FolderOpen,
 } from "lucide-react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { SyllabusUpload } from "@/components/dashboard/SyllabusUpload";
 import { TeacherRatings } from "@/components/dashboard/TeacherRatings";
+import { HODOverview } from "@/components/dashboard/hod/HODOverview";
+import { DepartmentTeachers } from "@/components/dashboard/hod/DepartmentTeachers";
+import { DepartmentResources } from "@/components/dashboard/hod/DepartmentResources";
+import { PerformanceReports } from "@/components/dashboard/hod/PerformanceReports";
 
 interface Department {
   id: string;
@@ -77,20 +57,26 @@ const HODDashboard = () => {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [policies, setPolicies] = useState<CurriculumPolicy[]>([]);
   const [isAddingPolicy, setIsAddingPolicy] = useState(false);
-  const [newPolicy, setNewPolicy] = useState({
-    title: "",
-    description: "",
-    status: "draft",
-  });
+  const [newPolicy, setNewPolicy] = useState({ title: "", description: "", status: "draft" });
   const [uploading, setUploading] = useState(false);
+
+  // Overview stats
+  const [teacherCount, setTeacherCount] = useState(0);
+  const [materialCount, setMaterialCount] = useState(0);
+  const [syllabiCount, setSyllabiCount] = useState(0);
+  const [avgPerformance, setAvgPerformance] = useState(0);
+  const [atRiskCount, setAtRiskCount] = useState(0);
+  const [totalLearners, setTotalLearners] = useState(0);
 
   const tabs = [
     { id: "overview", label: "Overview", icon: Building2 },
+    { id: "performance", label: "Performance", icon: BarChart3 },
+    { id: "teachers", label: "Teachers", icon: Users },
+    { id: "resources", label: "Resources", icon: FolderOpen },
     { id: "syllabus", label: "Syllabus", icon: FileText },
+    { id: "policies", label: "Policies", icon: FileText },
+    { id: "ratings", label: "Ratings", icon: Star },
     { id: "subjects", label: "Subjects", icon: BookOpen },
-    { id: "policies", label: "Curriculum Policies", icon: FileText },
-    { id: "ratings", label: "Teacher Ratings", icon: Star },
-    { id: "teachers", label: "Department Teachers", icon: Users },
   ];
 
   useEffect(() => {
@@ -102,7 +88,6 @@ const HODDashboard = () => {
     setLoading(true);
 
     try {
-      // Get the department this HOD is assigned to
       const { data: deptHeadData, error: deptHeadError } = await supabase
         .from("department_heads")
         .select("department_id")
@@ -110,46 +95,63 @@ const HODDashboard = () => {
         .single();
 
       if (deptHeadError || !deptHeadData) {
-        toast({
-          title: "No Department Assigned",
-          description: "You are not assigned to any department yet.",
-          variant: "destructive",
-        });
+        toast({ title: "No Department Assigned", description: "You are not assigned to any department yet.", variant: "destructive" });
         setLoading(false);
         return;
       }
 
-      // Get department details
       const { data: deptData } = await supabase
         .from("departments")
         .select("*")
         .eq("id", deptHeadData.department_id)
         .single();
+      if (deptData) setDepartment(deptData);
 
-      if (deptData) {
-        setDepartment(deptData);
-      }
-
-      // Get subjects in this department
       const { data: subjectsData } = await supabase
         .from("subjects")
         .select("*")
         .eq("department_id", deptHeadData.department_id);
+      if (subjectsData) setSubjects(subjectsData);
 
-      if (subjectsData) {
-        setSubjects(subjectsData);
-      }
-
-      // Get curriculum policies
       const { data: policiesData } = await supabase
         .from("curriculum_policies")
         .select("*")
         .eq("department_id", deptHeadData.department_id)
         .order("created_at", { ascending: false });
+      if (policiesData) setPolicies(policiesData);
 
-      if (policiesData) {
-        setPolicies(policiesData);
+      // Fetch counts for overview
+      const subjectNames = subjectsData?.map((s) => s.name) || [];
+
+      // Teacher count
+      const { data: deptProfiles } = await supabase
+        .from("profiles")
+        .select("user_id")
+        .eq("department_id", deptHeadData.department_id);
+      if (deptProfiles && deptProfiles.length > 0) {
+        const { data: roles } = await supabase
+          .from("user_roles")
+          .select("user_id")
+          .in("user_id", deptProfiles.map((p) => p.user_id))
+          .in("role", ["teacher", "hod"]);
+        setTeacherCount(roles?.length || 0);
       }
+
+      // Material count
+      if (subjectNames.length > 0) {
+        const { count } = await supabase
+          .from("learning_materials")
+          .select("id", { count: "exact", head: true })
+          .in("subject", subjectNames);
+        setMaterialCount(count || 0);
+      }
+
+      // Syllabi count
+      const { count: sCount } = await supabase
+        .from("syllabi")
+        .select("id", { count: "exact", head: true })
+        .eq("department_id", deptHeadData.department_id);
+      setSyllabiCount(sCount || 0);
     } catch (error) {
       console.error("Error fetching data:", error);
     } finally {
@@ -159,7 +161,6 @@ const HODDashboard = () => {
 
   const handleAddPolicy = async () => {
     if (!department || !user) return;
-
     try {
       const { error } = await supabase.from("curriculum_policies").insert({
         department_id: department.id,
@@ -168,24 +169,14 @@ const HODDashboard = () => {
         status: newPolicy.status,
         created_by: user.id,
       });
-
       if (error) throw error;
-
-      toast({
-        title: "Policy Created",
-        description: "Curriculum policy has been created successfully.",
-      });
-
+      toast({ title: "Policy Created", description: "Curriculum policy has been created successfully." });
       setNewPolicy({ title: "", description: "", status: "draft" });
       setIsAddingPolicy(false);
       fetchData();
     } catch (error) {
       console.error("Error adding policy:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create policy.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to create policy.", variant: "destructive" });
     }
   };
 
@@ -195,69 +186,43 @@ const HODDashboard = () => {
         .from("curriculum_policies")
         .update({ status: "published" })
         .eq("id", policyId);
-
       if (error) throw error;
-
-      toast({
-        title: "Policy Published",
-        description: "The policy is now visible to all staff.",
-      });
-
+      toast({ title: "Policy Published", description: "The policy is now visible to all staff." });
       fetchData();
     } catch (error) {
       console.error("Error publishing policy:", error);
-      toast({
-        title: "Error",
-        description: "Failed to publish policy.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to publish policy.", variant: "destructive" });
     }
   };
 
-  const handleUploadDocument = async (
-    policyId: string,
-    file: File
-  ) => {
+  const handleUploadDocument = async (policyId: string, file: File) => {
     setUploading(true);
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${policyId}-${Date.now()}.${fileExt}`;
       const filePath = `curriculum-policies/${fileName}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("uploads")
-        .upload(filePath, file);
-
+      const { error: uploadError } = await supabase.storage.from("uploads").upload(filePath, file);
       if (uploadError) throw uploadError;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from("uploads")
-        .getPublicUrl(filePath);
-
+      const { data: { publicUrl } } = supabase.storage.from("uploads").getPublicUrl(filePath);
       const { error: updateError } = await supabase
         .from("curriculum_policies")
         .update({ policy_document_url: publicUrl })
         .eq("id", policyId);
-
       if (updateError) throw updateError;
 
-      toast({
-        title: "Document Uploaded",
-        description: "Policy document has been uploaded successfully.",
-      });
-
+      toast({ title: "Document Uploaded", description: "Policy document has been uploaded successfully." });
       fetchData();
     } catch (error) {
       console.error("Error uploading document:", error);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload document.",
-        variant: "destructive",
-      });
+      toast({ title: "Upload Failed", description: "Failed to upload document.", variant: "destructive" });
     } finally {
       setUploading(false);
     }
   };
+
+  const subjectNames = subjects.map((s) => s.name);
 
   if (loading) {
     return (
@@ -275,13 +240,14 @@ const HODDashboard = () => {
         {/* Header */}
         <div className="bg-primary text-primary-foreground py-8">
           <div className="container mx-auto px-4">
-            <h1 className="text-3xl font-bold">HOD Dashboard</h1>
+            <h1 className="text-3xl font-bold">Head of Department Dashboard</h1>
             <p className="text-primary-foreground/80 mt-2">
               Welcome, {profile?.first_name || "Head of Department"}
             </p>
             {department && (
               <Badge variant="secondary" className="mt-2">
-                {department.name}
+                <Building2 className="w-3 h-3 mr-1" />
+                {department.name} Department
               </Badge>
             )}
           </div>
@@ -290,13 +256,14 @@ const HODDashboard = () => {
         {/* Navigation */}
         <div className="sticky top-0 bg-background border-b z-10">
           <div className="container mx-auto px-4">
-            <div className="flex gap-2 overflow-x-auto py-2">
+            <div className="flex gap-1 overflow-x-auto py-2">
               {tabs.map((tab) => (
                 <Button
                   key={tab.id}
                   variant={activeTab === tab.id ? "default" : "ghost"}
+                  size="sm"
                   onClick={() => setActiveTab(tab.id)}
-                  className="flex items-center gap-2 whitespace-nowrap"
+                  className="flex items-center gap-1.5 whitespace-nowrap"
                 >
                   <tab.icon className="w-4 h-4" />
                   {tab.label}
@@ -321,68 +288,37 @@ const HODDashboard = () => {
           ) : (
             <>
               {activeTab === "overview" && (
-                <div className="grid md:grid-cols-3 gap-6">
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">Department</CardTitle>
-                      <Building2 className="w-4 h-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{department.name}</div>
-                      <p className="text-xs text-muted-foreground">Code: {department.code}</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">Subjects</CardTitle>
-                      <BookOpen className="w-4 h-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{subjects.length}</div>
-                      <p className="text-xs text-muted-foreground">In this department</p>
-                    </CardContent>
-                  </Card>
-
-                  <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                      <CardTitle className="text-sm font-medium">Policies</CardTitle>
-                      <FileText className="w-4 h-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                      <div className="text-2xl font-bold">{policies.length}</div>
-                      <p className="text-xs text-muted-foreground">
-                        {policies.filter((p) => p.status === "published").length} published
-                      </p>
-                    </CardContent>
-                  </Card>
-                </div>
+                <HODOverview
+                  department={department}
+                  subjects={subjects}
+                  policies={policies}
+                  teacherCount={teacherCount}
+                  materialCount={materialCount}
+                  syllabiCount={syllabiCount}
+                  avgPerformance={avgPerformance}
+                  atRiskCount={atRiskCount}
+                  totalLearners={totalLearners}
+                />
               )}
 
-              {activeTab === "subjects" && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Department Subjects</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Subject Name</TableHead>
-                          <TableHead>Code</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {subjects.map((subject) => (
-                          <TableRow key={subject.id}>
-                            <TableCell className="font-medium">{subject.name}</TableCell>
-                            <TableCell>{subject.code}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
+              {activeTab === "performance" && (
+                <PerformanceReports
+                  subjectNames={subjectNames}
+                  onAvgUpdate={setAvgPerformance}
+                  onAtRiskUpdate={(risk, total) => { setAtRiskCount(risk); setTotalLearners(total); }}
+                />
+              )}
+
+              {activeTab === "teachers" && (
+                <DepartmentTeachers departmentId={department.id} subjectNames={subjectNames} />
+              )}
+
+              {activeTab === "resources" && (
+                <DepartmentResources subjectNames={subjectNames} />
+              )}
+
+              {activeTab === "syllabus" && (
+                <SyllabusUpload departmentId={department.id} departmentName={department.name} />
               )}
 
               {activeTab === "policies" && (
@@ -405,9 +341,7 @@ const HODDashboard = () => {
                             <label className="text-sm font-medium">Title</label>
                             <Input
                               value={newPolicy.title}
-                              onChange={(e) =>
-                                setNewPolicy({ ...newPolicy, title: e.target.value })
-                              }
+                              onChange={(e) => setNewPolicy({ ...newPolicy, title: e.target.value })}
                               placeholder="Policy title"
                             />
                           </div>
@@ -415,9 +349,7 @@ const HODDashboard = () => {
                             <label className="text-sm font-medium">Description</label>
                             <Textarea
                               value={newPolicy.description}
-                              onChange={(e) =>
-                                setNewPolicy({ ...newPolicy, description: e.target.value })
-                              }
+                              onChange={(e) => setNewPolicy({ ...newPolicy, description: e.target.value })}
                               placeholder="Policy description and guidelines"
                               rows={4}
                             />
@@ -426,22 +358,16 @@ const HODDashboard = () => {
                             <label className="text-sm font-medium">Status</label>
                             <Select
                               value={newPolicy.status}
-                              onValueChange={(value) =>
-                                setNewPolicy({ ...newPolicy, status: value })
-                              }
+                              onValueChange={(value) => setNewPolicy({ ...newPolicy, status: value })}
                             >
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
+                              <SelectTrigger><SelectValue /></SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="draft">Draft</SelectItem>
                                 <SelectItem value="published">Published</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
-                          <Button onClick={handleAddPolicy} className="w-full">
-                            Create Policy
-                          </Button>
+                          <Button onClick={handleAddPolicy} className="w-full">Create Policy</Button>
                         </div>
                       </DialogContent>
                     </Dialog>
@@ -458,50 +384,25 @@ const HODDashboard = () => {
                                 Created: {new Date(policy.created_at).toLocaleDateString()}
                               </p>
                             </div>
-                            <Badge
-                              variant={policy.status === "published" ? "default" : "secondary"}
-                            >
-                              {policy.status === "published" ? (
-                                <CheckCircle className="w-3 h-3 mr-1" />
-                              ) : (
-                                <Clock className="w-3 h-3 mr-1" />
-                              )}
+                            <Badge variant={policy.status === "published" ? "default" : "secondary"}>
+                              {policy.status === "published" ? <CheckCircle className="w-3 h-3 mr-1" /> : <Clock className="w-3 h-3 mr-1" />}
                               {policy.status}
                             </Badge>
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-muted-foreground mb-4">
-                            {policy.description || "No description provided."}
-                          </p>
+                          <p className="text-muted-foreground mb-4">{policy.description || "No description provided."}</p>
                           <div className="flex gap-2 flex-wrap">
                             {policy.status === "draft" && (
-                              <Button
-                                size="sm"
-                                onClick={() => handlePublishPolicy(policy.id)}
-                              >
-                                Publish
-                              </Button>
+                              <Button size="sm" onClick={() => handlePublishPolicy(policy.id)}>Publish</Button>
                             )}
                             {policy.policy_document_url ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  window.open(policy.policy_document_url!, "_blank")
-                                }
-                              >
-                                <FileText className="w-4 h-4 mr-2" />
-                                View Document
+                              <Button size="sm" variant="outline" onClick={() => window.open(policy.policy_document_url!, "_blank")}>
+                                <FileText className="w-4 h-4 mr-2" />View Document
                               </Button>
                             ) : (
                               <label>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={uploading}
-                                  asChild
-                                >
+                                <Button size="sm" variant="outline" disabled={uploading} asChild>
                                   <span>
                                     <Upload className="w-4 h-4 mr-2" />
                                     {uploading ? "Uploading..." : "Upload Document"}
@@ -522,14 +423,11 @@ const HODDashboard = () => {
                         </CardContent>
                       </Card>
                     ))}
-
                     {policies.length === 0 && (
                       <Card>
                         <CardContent className="py-12 text-center">
                           <FileText className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                          <p className="text-muted-foreground">
-                            No curriculum policies yet. Create your first policy.
-                          </p>
+                          <p className="text-muted-foreground">No curriculum policies yet. Create your first policy.</p>
                         </CardContent>
                       </Card>
                     )}
@@ -537,27 +435,32 @@ const HODDashboard = () => {
                 </div>
               )}
 
-              {activeTab === "syllabus" && department && (
-                <SyllabusUpload 
-                  departmentId={department.id} 
-                  departmentName={department.name} 
-                />
-              )}
-
-              {activeTab === "ratings" && department && (
+              {activeTab === "ratings" && (
                 <TeacherRatings departmentId={department.id} />
               )}
 
-              {activeTab === "teachers" && (
+              {activeTab === "subjects" && (
                 <Card>
                   <CardHeader>
-                    <CardTitle>Department Teachers</CardTitle>
+                    <CardTitle>Department Subjects</CardTitle>
                   </CardHeader>
-                  <CardContent className="py-12 text-center">
-                    <Users className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                    <p className="text-muted-foreground">
-                      Teacher assignment feature coming soon.
-                    </p>
+                  <CardContent>
+                    <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+                      {subjects.map((subject) => (
+                        <div key={subject.id} className="flex items-center gap-3 p-3 rounded-lg border">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                            <BookOpen className="w-5 h-5 text-primary" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{subject.name}</p>
+                            <p className="text-xs text-muted-foreground">{subject.code}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {subjects.length === 0 && (
+                        <p className="text-muted-foreground col-span-full text-center py-8">No subjects assigned yet.</p>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               )}
