@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { PastPapers } from "@/components/PastPapers";
 import { TeacherHomeworkReview } from "@/components/dashboard/TeacherHomeworkReview";
+import { QuizQuestionManager } from "@/components/dashboard/QuizQuestionManager";
 
 interface LearningMaterial {
   id: string;
@@ -83,6 +84,11 @@ export default function TeacherDashboard() {
   const [studentMarks, setStudentMarks] = useState<Record<string, string>>({});
   const [studentFeedback, setStudentFeedback] = useState<Record<string, string>>({});
   const [savingMarks, setSavingMarks] = useState(false);
+  const [submissionCount, setSubmissionCount] = useState(0);
+
+  // Quiz question manager
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
+  const [quizManagerOpen, setQuizManagerOpen] = useState(false);
 
   // Email form
   const [notificationMessage, setNotificationMessage] = useState("");
@@ -94,7 +100,7 @@ export default function TeacherDashboard() {
     { id: "quizzes", label: "Quizzes & Tests", icon: ClipboardCheck },
     { id: "attendance", label: "Attendance", icon: Calendar },
     { id: "marks", label: "Marks & Feedback", icon: FileText },
-    { id: "submissions", label: "Submissions", icon: FileText },
+    { id: "submissions", label: `Submissions${submissionCount > 0 ? ` (${submissionCount})` : ''}`, icon: FileText },
     { id: "communicate", label: "Communicate", icon: MessageSquare },
   ];
 
@@ -140,8 +146,16 @@ export default function TeacherDashboard() {
 
   useEffect(() => {
     setLoading(true);
-    Promise.all([fetchMaterials(), fetchQuizzes(), fetchStudents()]).then(() => setLoading(false));
+    Promise.all([fetchMaterials(), fetchQuizzes(), fetchStudents(), fetchSubmissionCount()]).then(() => setLoading(false));
   }, []);
+
+  const fetchSubmissionCount = async () => {
+    const { count } = await supabase
+      .from('homework_submissions')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'submitted');
+    setSubmissionCount(count || 0);
+  };
 
   useEffect(() => {
     fetchStudents();
@@ -289,6 +303,15 @@ export default function TeacherDashboard() {
     } catch (error) {
       console.error('Quiz creation error:', error);
       toast({ title: "Error", description: "Failed to create quiz", variant: "destructive" });
+    }
+  };
+
+  const toggleQuizStatus = async (quiz: Quiz) => {
+    const newStatus = quiz.status === 'published' ? 'draft' : 'published';
+    const { error } = await supabase.from('quizzes').update({ status: newStatus }).eq('id', quiz.id);
+    if (!error) {
+      toast({ title: newStatus === 'published' ? "Quiz Published" : "Quiz Unpublished" });
+      fetchQuizzes();
     }
   };
 
@@ -624,7 +647,7 @@ export default function TeacherDashboard() {
                     <div className="space-y-4">
                       {quizzes.map((quiz) => (
                         <div key={quiz.id} className="glass-card p-4">
-                          <div className="flex items-start justify-between">
+                          <div className="flex items-start justify-between mb-3">
                             <div>
                               <h4 className="font-medium text-foreground">{quiz.title}</h4>
                               <p className="text-sm text-muted-foreground">{quiz.subject} • {quiz.grade}</p>
@@ -634,6 +657,23 @@ export default function TeacherDashboard() {
                             }`}>
                               {quiz.status}
                             </span>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => { setSelectedQuiz(quiz); setQuizManagerOpen(true); }}
+                            >
+                              <ClipboardCheck className="w-4 h-4 mr-1" /> Manage Questions
+                            </Button>
+                            <Button
+                              variant={quiz.status === 'published' ? "outline" : "default"}
+                              size="sm"
+                              onClick={() => toggleQuizStatus(quiz)}
+                            >
+                              {quiz.status === 'published' ? 'Unpublish' : 'Publish'}
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -902,6 +942,16 @@ export default function TeacherDashboard() {
             </>
           )}
         </div>
+
+        {/* Quiz Question Manager Modal */}
+        {selectedQuiz && (
+          <QuizQuestionManager
+            quizId={selectedQuiz.id}
+            quizTitle={selectedQuiz.title}
+            isOpen={quizManagerOpen}
+            onClose={() => { setQuizManagerOpen(false); setSelectedQuiz(null); }}
+          />
+        )}
       </div>
     </Layout>
   );
