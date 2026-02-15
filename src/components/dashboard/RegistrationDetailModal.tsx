@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { 
   User, Mail, Phone, MapPin, Calendar, FileText, 
-  Download, CheckCircle, XCircle, Clock, CreditCard 
+  Download, CheckCircle, XCircle, Clock, CreditCard, Eye
 } from "lucide-react";
 
 interface Registration {
@@ -248,13 +248,22 @@ function DocumentLink({ label, url, icon }: { label: string; url: string | null;
         <span className="text-sm">{label}</span>
       </div>
       {url ? (
-        <a href={url} target="_blank" rel="noopener noreferrer">
-          <Button variant="ghost" size="sm">
-            <Download className="w-4 h-4 text-primary" />
-          </Button>
-        </a>
+        <div className="flex items-center gap-1">
+          <a href={url} target="_blank" rel="noopener noreferrer">
+            <Button variant="ghost" size="sm" title="View document">
+              <Eye className="w-4 h-4 text-primary" />
+            </Button>
+          </a>
+          <a href={url} download target="_blank" rel="noopener noreferrer">
+            <Button variant="ghost" size="sm" title="Download document">
+              <Download className="w-4 h-4 text-primary" />
+            </Button>
+          </a>
+        </div>
       ) : (
-        <Clock className="w-4 h-4 text-muted-foreground" />
+        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+          <Clock className="w-4 h-4" /> Not uploaded
+        </span>
       )}
     </div>
   );
