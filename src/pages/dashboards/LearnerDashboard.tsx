@@ -19,6 +19,7 @@ import { ELearningMaterials } from "@/components/dashboard/ELearningMaterials";
 import { SubscriptionPayment } from "@/components/dashboard/SubscriptionPayment";
 import { RequestStatement } from "@/components/dashboard/RequestStatement";
 import { ComplaintForm } from "@/components/dashboard/ComplaintForm";
+import { QuizPlayer } from "@/components/dashboard/QuizPlayer";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -40,6 +41,15 @@ interface Quiz {
   grade: string;
   total_marks: number | null;
   duration_minutes: number | null;
+  description: string | null;
+}
+
+interface QuizSubmission {
+  id: string;
+  quiz_id: string;
+  score: number | null;
+  total_marks: number | null;
+  submitted_at: string;
 }
 
 interface Announcement {
@@ -85,6 +95,11 @@ export default function LearnerDashboard() {
   // Subject modal
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [subjectModalOpen, setSubjectModalOpen] = useState(false);
+  
+  // Quiz player
+  const [selectedQuiz, setSelectedQuiz] = useState<Quiz | null>(null);
+  const [quizPlayerOpen, setQuizPlayerOpen] = useState(false);
+  const [quizSubmissions, setQuizSubmissions] = useState<QuizSubmission[]>([]);
 
   const tabs = [
     { id: "overview", label: "Overview", icon: User },
@@ -113,11 +128,12 @@ export default function LearnerDashboard() {
   const fetchData = async () => {
     setLoading(true);
     
-    const [materialsRes, quizzesRes, announcementsRes, timetablesRes] = await Promise.all([
+    const [materialsRes, quizzesRes, announcementsRes, timetablesRes, submissionsRes] = await Promise.all([
       supabase.from('learning_materials').select('*').order('created_at', { ascending: false }),
       supabase.from('quizzes').select('*').eq('status', 'published').order('created_at', { ascending: false }),
       supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(20),
       supabase.from('timetables').select('*').order('created_at', { ascending: false }),
+      user ? supabase.from('quiz_submissions').select('*').eq('user_id', user.id).order('submitted_at', { ascending: false }) : Promise.resolve({ data: null }),
     ]);
 
     if (materialsRes.data) setMaterials(materialsRes.data);
@@ -134,6 +150,9 @@ export default function LearnerDashboard() {
           t.grade === learnerGrade || t.timetable_type === 'exam'
         )
       );
+    }
+    if (submissionsRes.data) {
+      setQuizSubmissions(submissionsRes.data.map(s => ({ ...s, score: s.score, total_marks: s.total_marks })));
     }
     setLoading(false);
   };
@@ -466,23 +485,98 @@ export default function LearnerDashboard() {
               {/* Quizzes Tab */}
               {activeTab === "quizzes" && (
                 <div className="space-y-6">
+                  {/* My Performance Summary */}
+                  {quizSubmissions.length > 0 && (
+                    <div className="space-y-4">
+                      <h2 className="font-heading text-xl font-semibold text-foreground">My Quiz Performance</h2>
+                      <div className="grid sm:grid-cols-3 gap-4">
+                        <div className="glass-card p-4 text-center">
+                          <p className="text-2xl font-bold text-foreground">{quizSubmissions.length}</p>
+                          <p className="text-xs text-muted-foreground">Quizzes Taken</p>
+                        </div>
+                        <div className="glass-card p-4 text-center">
+                          <p className="text-2xl font-bold text-primary">
+                            {quizSubmissions.filter(s => s.score !== null && s.total_marks && (s.score / s.total_marks) * 100 >= 50).length}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Passed</p>
+                        </div>
+                        <div className="glass-card p-4 text-center">
+                          <p className="text-2xl font-bold text-foreground">
+                            {quizSubmissions.length > 0
+                              ? `${Math.round(quizSubmissions.reduce((a, s) => a + ((s.score && s.total_marks) ? (s.score / s.total_marks) * 100 : 0), 0) / quizSubmissions.length)}%`
+                              : "-"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Average</p>
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        {quizSubmissions.map(sub => {
+                          const quiz = quizzes.find(q => q.id === sub.quiz_id);
+                          const pct = sub.score !== null && sub.total_marks ? Math.round((sub.score / sub.total_marks) * 100) : null;
+                          return (
+                            <div key={sub.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50">
+                              <div>
+                                <p className="text-sm font-medium text-foreground">{quiz?.title || "Quiz"}</p>
+                                <p className="text-xs text-muted-foreground">{quiz?.subject} • {new Date(sub.submitted_at).toLocaleDateString()}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className={`text-sm font-bold ${pct !== null ? (pct >= 80 ? "text-primary" : pct >= 50 ? "text-accent" : "text-destructive") : "text-muted-foreground"}`}>
+                                  {sub.score !== null ? `${sub.score}/${sub.total_marks}` : "Pending"}
+                                </p>
+                                {pct !== null && (
+                                  <p className={`text-xs font-bold ${pct >= 80 ? "text-primary" : pct >= 50 ? "text-accent" : "text-destructive"}`}>
+                                    {pct}% {pct >= 50 ? "✓" : "✗"}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
                   <h2 className="font-heading text-xl font-semibold text-foreground">Available Quizzes</h2>
                   {quizzes.length > 0 ? (
                     <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {quizzes.map((quiz) => (
-                        <div key={quiz.id} className="glass-card p-6">
-                          <h4 className="font-heading font-semibold text-foreground mb-2">{quiz.title}</h4>
-                          <p className="text-sm text-muted-foreground mb-2">{quiz.subject} • {quiz.grade}</p>
-                          <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
-                            <Clock className="w-4 h-4" />
-                            <span>{quiz.duration_minutes || 30} min</span>
-                            <span>•</span>
-                            <Trophy className="w-4 h-4" />
-                            <span>{quiz.total_marks || 100} marks</span>
+                      {quizzes.map((quiz) => {
+                        const attempted = quizSubmissions.find(s => s.quiz_id === quiz.id);
+                        return (
+                          <div key={quiz.id} className="glass-card p-6">
+                            <h4 className="font-heading font-semibold text-foreground mb-2">{quiz.title}</h4>
+                            <p className="text-sm text-muted-foreground mb-2">{quiz.subject} • {quiz.grade}</p>
+                            <div className="flex items-center gap-2 mb-4 text-sm text-muted-foreground">
+                              <Clock className="w-4 h-4" />
+                              <span>{quiz.duration_minutes || 30} min</span>
+                              <span>•</span>
+                              <Trophy className="w-4 h-4" />
+                              <span>{quiz.total_marks || 100} marks</span>
+                            </div>
+                            {attempted ? (
+                              <div className="space-y-2">
+                                <div className={`text-center py-2 rounded-lg ${
+                                  attempted.score !== null && attempted.total_marks && (attempted.score / attempted.total_marks) * 100 >= 50
+                                    ? "bg-primary/10 text-primary" : "bg-destructive/10 text-destructive"
+                                }`}>
+                                  <p className="text-lg font-bold">{attempted.score}/{attempted.total_marks}</p>
+                                  <p className="text-xs">
+                                    {attempted.score !== null && attempted.total_marks
+                                      ? `${Math.round((attempted.score / attempted.total_marks) * 100)}%`
+                                      : ""}
+                                  </p>
+                                </div>
+                                <Button variant="outline" className="w-full" onClick={() => { setSelectedQuiz(quiz); setQuizPlayerOpen(true); }}>
+                                  View Results
+                                </Button>
+                              </div>
+                            ) : (
+                              <Button className="w-full" onClick={() => { setSelectedQuiz(quiz); setQuizPlayerOpen(true); }}>
+                                <Play className="w-4 h-4 mr-2" /> Start Quiz
+                              </Button>
+                            )}
                           </div>
-                          <Button className="w-full"><Play className="w-4 h-4 mr-2" /> Start Quiz</Button>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="glass-card p-8 text-center">
@@ -553,6 +647,20 @@ export default function LearnerDashboard() {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Quiz Player Modal */}
+        {selectedQuiz && (
+          <QuizPlayer
+            quizId={selectedQuiz.id}
+            quizTitle={selectedQuiz.title}
+            quizSubject={selectedQuiz.subject}
+            quizDuration={selectedQuiz.duration_minutes}
+            quizTotalMarks={selectedQuiz.total_marks}
+            isOpen={quizPlayerOpen}
+            onClose={() => { setQuizPlayerOpen(false); setSelectedQuiz(null); }}
+            onComplete={() => fetchData()}
+          />
+        )}
       </div>
     </Layout>
   );
