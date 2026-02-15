@@ -53,22 +53,10 @@ export function TeacherRatingForm() {
   const fetchData = async () => {
     setLoading(true);
 
-    // Fetch teachers (users with teacher role)
-    const { data: teacherRoles } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "teacher");
-
-    if (teacherRoles && teacherRoles.length > 0) {
-      const teacherIds = teacherRoles.map((r) => r.user_id);
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id, first_name, last_name")
-        .in("user_id", teacherIds);
-
-      if (profiles) {
-        setTeachers(profiles);
-      }
+    // Fetch teachers using security definer function (bypasses RLS)
+    const { data: teacherProfiles } = await supabase.rpc("get_teacher_profiles");
+    if (teacherProfiles) {
+      setTeachers(teacherProfiles as Teacher[]);
     }
 
     // Fetch all subjects

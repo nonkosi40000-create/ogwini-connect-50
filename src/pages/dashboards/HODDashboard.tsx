@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/dialog";
 import { SyllabusUpload } from "@/components/dashboard/SyllabusUpload";
 import { TeacherRatings } from "@/components/dashboard/TeacherRatings";
+import { TeacherRatingsView } from "@/components/dashboard/TeacherRatingsView";
 import { HODOverview } from "@/components/dashboard/hod/HODOverview";
 import { DepartmentTeachers } from "@/components/dashboard/hod/DepartmentTeachers";
 import { DepartmentResources } from "@/components/dashboard/hod/DepartmentResources";
@@ -436,7 +437,10 @@ const HODDashboard = () => {
               )}
 
               {activeTab === "ratings" && (
-                <TeacherRatings departmentId={department.id} />
+                <div className="space-y-6">
+                  <TeacherRatings departmentId={department.id} />
+                  <TeacherRatingsView />
+                </div>
               )}
 
               {activeTab === "subjects" && (
