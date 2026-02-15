@@ -25,6 +25,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { TeacherRatingsView } from "@/components/dashboard/TeacherRatingsView";
 
 // ─── Types ────────────────────────────────────────────────────
 
@@ -90,8 +91,8 @@ interface TeacherProfile {
   user_id: string;
   first_name: string;
   last_name: string;
-  email: string;
-  department_id: string | null;
+  email?: string;
+  department_id?: string | null;
 }
 
 interface StudentAvg extends StudentProfile {
@@ -146,7 +147,7 @@ export default function GradeHeadDashboard() {
       supabase.from("teacher_ratings").select("*"),
       supabase.from("timetables").select("*").eq("grade", gradeAssigned).order("created_at", { ascending: false }),
       supabase.from("learning_materials").select("*").or(`grade.eq.${gradeAssigned},grade.is.null`).order("created_at", { ascending: false }),
-      supabase.from("profiles").select("user_id, first_name, last_name, email, department_id"),
+      supabase.rpc("get_teacher_profiles"),
     ]);
 
     if (studentsRes.data) setStudents(studentsRes.data as StudentProfile[]);
@@ -853,6 +854,9 @@ export default function GradeHeadDashboard() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Detailed Ratings View with feedback */}
+              <TeacherRatingsView />
             </TabsContent>
 
             {/* ─── TIMETABLES ─────────────────────────────── */}
