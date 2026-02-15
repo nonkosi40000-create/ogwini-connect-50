@@ -298,6 +298,25 @@ const [formData, setFormData] = useState<FormData>({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Final validation: ensure required documents are uploaded
+    if (!uploadedFiles.idDocument || !uploadedFiles.proofOfAddress) {
+      toast({ title: "Missing Documents", description: "ID Document and Proof of Address are required.", variant: "destructive" });
+      return;
+    }
+    if (isLearner && !uploadedFiles.lastReport) {
+      toast({ title: "Missing Report", description: "Previous school report is required.", variant: "destructive" });
+      return;
+    }
+    if (isLearner && !uploadedFiles.proofOfPayment) {
+      toast({ title: "Missing Payment Proof", description: "Please upload proof of payment before submitting.", variant: "destructive" });
+      return;
+    }
+    if (isStaff && !uploadedFiles.qualification) {
+      toast({ title: "Missing Qualification", description: "Qualification document is required.", variant: "destructive" });
+      return;
+    }
+
     setSubmitting(true);
 
     try {

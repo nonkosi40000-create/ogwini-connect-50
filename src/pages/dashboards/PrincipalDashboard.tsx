@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { 
+import {
   User, Users, BarChart3, Star, MessageSquare, Send,
   TrendingUp, TrendingDown, School, Bell, ChevronRight, Loader2,
   AlertTriangle, CheckCircle, Clock
 } from "lucide-react";
+import { TeacherRatingsView } from "@/components/dashboard/TeacherRatingsView";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,6 +47,7 @@ export default function PrincipalDashboard() {
   const tabs = [
     { id: "overview", label: "School Overview", icon: School },
     { id: "grades", label: "Grade Performance", icon: BarChart3 },
+    { id: "ratings", label: "Teacher Ratings", icon: Star },
     { id: "complaints", label: "Complaints", icon: AlertTriangle },
     { id: "staff", label: "Staff Overview", icon: Users },
     { id: "communicate", label: "Communication", icon: MessageSquare },
@@ -244,6 +246,15 @@ export default function PrincipalDashboard() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Teacher Ratings */}
+              {activeTab === "ratings" && (
+                <div className="space-y-6">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">Teacher Ratings</h2>
+                  <p className="text-sm text-muted-foreground">Anonymous learner feedback aggregated across all teachers</p>
+                  <TeacherRatingsView />
                 </div>
               )}
 
