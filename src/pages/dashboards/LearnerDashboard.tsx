@@ -411,9 +411,14 @@ export default function LearnerDashboard() {
                           <h4 className="font-medium text-foreground text-sm mb-1">{tt.title}</h4>
                           <p className="text-xs text-muted-foreground mb-1">{tt.grade} {tt.class ? `• ${tt.class}` : ''}</p>
                           <p className="text-xs text-muted-foreground mb-3 capitalize">{tt.timetable_type} timetable</p>
-                          <a href={tt.file_url} target="_blank" rel="noopener noreferrer">
-                            <Button variant="outline" size="sm" className="w-full"><Download className="w-4 h-4 mr-2" /> Download</Button>
-                          </a>
+                          <div className="flex gap-2">
+                            <a href={tt.file_url} target="_blank" rel="noopener noreferrer" className="flex-1">
+                              <Button variant="outline" size="sm" className="w-full"><FileText className="w-4 h-4 mr-2" /> View</Button>
+                            </a>
+                            <a href={tt.file_url} download className="flex-1">
+                              <Button variant="default" size="sm" className="w-full"><Download className="w-4 h-4 mr-2" /> Download</Button>
+                            </a>
+                          </div>
                         </div>
                       ))}
                     </div>
