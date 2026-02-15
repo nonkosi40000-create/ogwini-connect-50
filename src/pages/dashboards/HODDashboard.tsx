@@ -54,7 +54,8 @@ const HODDashboard = () => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [loading, setLoading] = useState(true);
-  const [department, setDepartment] = useState<Department | null>(null);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [policies, setPolicies] = useState<CurriculumPolicy[]>([]);
   const [isAddingPolicy, setIsAddingPolicy] = useState(false);
@@ -80,91 +81,94 @@ const HODDashboard = () => {
     { id: "subjects", label: "Subjects", icon: BookOpen },
   ];
 
+  // Fetch all departments assigned to this HOD
   useEffect(() => {
-    fetchData();
+    const fetchDepartments = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const { data: deptHeadRows, error } = await supabase
+          .from("department_heads")
+          .select("department_id")
+          .eq("user_id", user.id);
+
+        if (error || !deptHeadRows || deptHeadRows.length === 0) {
+          toast({ title: "No Department Assigned", description: "You are not assigned to any department yet.", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+
+        const deptIds = deptHeadRows.map((r) => r.department_id);
+        const { data: deptData } = await supabase
+          .from("departments")
+          .select("*")
+          .in("id", deptIds)
+          .order("name");
+
+        if (deptData && deptData.length > 0) {
+          setDepartments(deptData);
+          setSelectedDepartment(deptData[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching departments:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDepartments();
   }, [user]);
 
-  const fetchData = async () => {
-    if (!user) return;
-    setLoading(true);
+  // Fetch department-specific data when selected department changes
+  useEffect(() => {
+    if (selectedDepartment) {
+      fetchDepartmentData(selectedDepartment.id);
+    }
+  }, [selectedDepartment]);
 
+  const fetchDepartmentData = async (departmentId: string) => {
     try {
-      const { data: deptHeadData, error: deptHeadError } = await supabase
-        .from("department_heads")
-        .select("department_id")
-        .eq("user_id", user.id)
-        .single();
+      const [subjectsRes, policiesRes] = await Promise.all([
+        supabase.from("subjects").select("*").eq("department_id", departmentId),
+        supabase.from("curriculum_policies").select("*").eq("department_id", departmentId).order("created_at", { ascending: false }),
+      ]);
 
-      if (deptHeadError || !deptHeadData) {
-        toast({ title: "No Department Assigned", description: "You are not assigned to any department yet.", variant: "destructive" });
-        setLoading(false);
-        return;
-      }
+      if (subjectsRes.data) setSubjects(subjectsRes.data);
+      if (policiesRes.data) setPolicies(policiesRes.data);
 
-      const { data: deptData } = await supabase
-        .from("departments")
-        .select("*")
-        .eq("id", deptHeadData.department_id)
-        .single();
-      if (deptData) setDepartment(deptData);
+      const subjectNames = subjectsRes.data?.map((s) => s.name) || [];
 
-      const { data: subjectsData } = await supabase
-        .from("subjects")
-        .select("*")
-        .eq("department_id", deptHeadData.department_id);
-      if (subjectsData) setSubjects(subjectsData);
+      // Fetch counts in parallel
+      const deptProfilesPromise = supabase.from("profiles").select("user_id").eq("department_id", departmentId);
+      const syllabiPromise = supabase.from("syllabi").select("id", { count: "exact", head: true }).eq("department_id", departmentId);
+      const materialsPromise = subjectNames.length > 0
+        ? supabase.from("learning_materials").select("id", { count: "exact", head: true }).in("subject", subjectNames)
+        : Promise.resolve({ count: 0 });
 
-      const { data: policiesData } = await supabase
-        .from("curriculum_policies")
-        .select("*")
-        .eq("department_id", deptHeadData.department_id)
-        .order("created_at", { ascending: false });
-      if (policiesData) setPolicies(policiesData);
+      const [deptProfilesRes, syllabiRes, materialsRes] = await Promise.all([deptProfilesPromise, syllabiPromise, materialsPromise]);
 
-      // Fetch counts for overview
-      const subjectNames = subjectsData?.map((s) => s.name) || [];
+      setSyllabiCount(syllabiRes.count || 0);
+      setMaterialCount(materialsRes.count || 0);
 
-      // Teacher count
-      const { data: deptProfiles } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .eq("department_id", deptHeadData.department_id);
-      if (deptProfiles && deptProfiles.length > 0) {
+      if (deptProfilesRes.data && deptProfilesRes.data.length > 0) {
         const { data: roles } = await supabase
           .from("user_roles")
           .select("user_id")
-          .in("user_id", deptProfiles.map((p) => p.user_id))
+          .in("user_id", deptProfilesRes.data.map((p) => p.user_id))
           .in("role", ["teacher", "hod"]);
         setTeacherCount(roles?.length || 0);
+      } else {
+        setTeacherCount(0);
       }
-
-      // Material count
-      if (subjectNames.length > 0) {
-        const { count } = await supabase
-          .from("learning_materials")
-          .select("id", { count: "exact", head: true })
-          .in("subject", subjectNames);
-        setMaterialCount(count || 0);
-      }
-
-      // Syllabi count
-      const { count: sCount } = await supabase
-        .from("syllabi")
-        .select("id", { count: "exact", head: true })
-        .eq("department_id", deptHeadData.department_id);
-      setSyllabiCount(sCount || 0);
     } catch (error) {
-      console.error("Error fetching data:", error);
-    } finally {
-      setLoading(false);
+      console.error("Error fetching department data:", error);
     }
   };
 
   const handleAddPolicy = async () => {
-    if (!department || !user) return;
+    if (!selectedDepartment || !user) return;
     try {
       const { error } = await supabase.from("curriculum_policies").insert({
-        department_id: department.id,
+        department_id: selectedDepartment.id,
         title: newPolicy.title,
         description: newPolicy.description,
         status: newPolicy.status,
@@ -174,7 +178,7 @@ const HODDashboard = () => {
       toast({ title: "Policy Created", description: "Curriculum policy has been created successfully." });
       setNewPolicy({ title: "", description: "", status: "draft" });
       setIsAddingPolicy(false);
-      fetchData();
+      fetchDepartmentData(selectedDepartment.id);
     } catch (error) {
       console.error("Error adding policy:", error);
       toast({ title: "Error", description: "Failed to create policy.", variant: "destructive" });
@@ -189,7 +193,7 @@ const HODDashboard = () => {
         .eq("id", policyId);
       if (error) throw error;
       toast({ title: "Policy Published", description: "The policy is now visible to all staff." });
-      fetchData();
+      if (selectedDepartment) fetchDepartmentData(selectedDepartment.id);
     } catch (error) {
       console.error("Error publishing policy:", error);
       toast({ title: "Error", description: "Failed to publish policy.", variant: "destructive" });
@@ -214,7 +218,7 @@ const HODDashboard = () => {
       if (updateError) throw updateError;
 
       toast({ title: "Document Uploaded", description: "Policy document has been uploaded successfully." });
-      fetchData();
+      if (selectedDepartment) fetchDepartmentData(selectedDepartment.id);
     } catch (error) {
       console.error("Error uploading document:", error);
       toast({ title: "Upload Failed", description: "Failed to upload document.", variant: "destructive" });
@@ -245,12 +249,34 @@ const HODDashboard = () => {
             <p className="text-primary-foreground/80 mt-2">
               Welcome, {profile?.first_name || "Head of Department"}
             </p>
-            {department && (
+            {departments.length > 1 ? (
+              <div className="mt-3">
+                <Select
+                  value={selectedDepartment?.id || ""}
+                  onValueChange={(val) => {
+                    const dept = departments.find((d) => d.id === val);
+                    if (dept) setSelectedDepartment(dept);
+                  }}
+                >
+                  <SelectTrigger className="w-[280px] bg-primary-foreground/10 border-primary-foreground/20 text-primary-foreground">
+                    <Building2 className="w-4 h-4 mr-2" />
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {departments.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name} Department
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : selectedDepartment ? (
               <Badge variant="secondary" className="mt-2">
                 <Building2 className="w-3 h-3 mr-1" />
-                {department.name} Department
+                {selectedDepartment.name} Department
               </Badge>
-            )}
+            ) : null}
           </div>
         </div>
 
@@ -276,7 +302,7 @@ const HODDashboard = () => {
 
         {/* Content */}
         <div className="container mx-auto px-4 py-8">
-          {!department ? (
+          {!selectedDepartment ? (
             <Card>
               <CardContent className="py-12 text-center">
                 <Building2 className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
@@ -290,7 +316,7 @@ const HODDashboard = () => {
             <>
               {activeTab === "overview" && (
                 <HODOverview
-                  department={department}
+                  department={selectedDepartment}
                   subjects={subjects}
                   policies={policies}
                   teacherCount={teacherCount}
@@ -311,7 +337,7 @@ const HODDashboard = () => {
               )}
 
               {activeTab === "teachers" && (
-                <DepartmentTeachers departmentId={department.id} subjectNames={subjectNames} />
+                <DepartmentTeachers departmentId={selectedDepartment.id} subjectNames={subjectNames} />
               )}
 
               {activeTab === "resources" && (
@@ -319,7 +345,7 @@ const HODDashboard = () => {
               )}
 
               {activeTab === "syllabus" && (
-                <SyllabusUpload departmentId={department.id} departmentName={department.name} />
+                <SyllabusUpload departmentId={selectedDepartment.id} departmentName={selectedDepartment.name} />
               )}
 
               {activeTab === "policies" && (
@@ -438,7 +464,7 @@ const HODDashboard = () => {
 
               {activeTab === "ratings" && (
                 <div className="space-y-6">
-                  <TeacherRatings departmentId={department.id} />
+                  <TeacherRatings departmentId={selectedDepartment.id} />
                   <TeacherRatingsView />
                 </div>
               )}
