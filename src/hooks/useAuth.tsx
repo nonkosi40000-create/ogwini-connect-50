@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 
-type AppRole = "learner" | "teacher" | "grade_head" | "principal" | "admin" | "hod" | "llc" | "finance" | "librarian";
+type AppRole = "learner" | "teacher" | "grade_head" | "principal" | "deputy_principal" | "admin" | "hod" | "llc" | "finance" | "librarian";
 
 interface Profile {
   id: string;
@@ -286,6 +286,9 @@ export function useRoleRedirect() {
         break;
       case "principal":
         navigate("/dashboard/principal");
+        break;
+      case "deputy_principal":
+        navigate("/dashboard/deputy-principal");
         break;
       case "admin":
         navigate("/dashboard/admin");

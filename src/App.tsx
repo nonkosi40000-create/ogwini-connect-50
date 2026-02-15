@@ -21,6 +21,7 @@ import GradeHeadDashboard from "./pages/dashboards/GradeHeadDashboard";
 import HODDashboard from "./pages/dashboards/HODDashboard";
 import LLCDashboard from "./pages/dashboards/LLCDashboard";
 import PrincipalDashboard from "./pages/dashboards/PrincipalDashboard";
+import DeputyPrincipalDashboard from "./pages/dashboards/DeputyPrincipalDashboard";
 import AdminDashboard from "./pages/dashboards/AdminDashboard";
 import PendingDashboard from "./pages/dashboards/PendingDashboard";
 import FinanceDashboard from "./pages/dashboards/FinanceDashboard";
@@ -92,6 +93,11 @@ const App = () => (
             <Route path="/dashboard/principal" element={
               <ProtectedRoute allowedRoles={["principal"]}>
                 <PrincipalDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/dashboard/deputy-principal" element={
+              <ProtectedRoute allowedRoles={["deputy_principal"]}>
+                <DeputyPrincipalDashboard />
               </ProtectedRoute>
             } />
             <Route path="/dashboard/admin" element={
