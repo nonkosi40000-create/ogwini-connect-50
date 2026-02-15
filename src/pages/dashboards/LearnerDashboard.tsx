@@ -50,6 +50,16 @@ interface Announcement {
   type: string;
 }
 
+interface Timetable {
+  id: string;
+  title: string;
+  grade: string;
+  class: string | null;
+  timetable_type: string;
+  file_url: string;
+  created_at: string;
+}
+
 // Subjects for different grades
 const grade8to9Subjects = [
   "IsiZulu (HL)", "English (FAL)", "Afrikaans (SAL)", "Mathematics", "Natural Sciences",
@@ -68,6 +78,7 @@ export default function LearnerDashboard() {
   const [materials, setMaterials] = useState<LearningMaterial[]>([]);
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [timetables, setTimetables] = useState<Timetable[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   
@@ -81,6 +92,7 @@ export default function LearnerDashboard() {
     { id: "results", label: "Results", icon: Trophy },
     { id: "homework", label: "Homework", icon: Upload },
     { id: "materials", label: "Materials", icon: FileText },
+    { id: "timetables", label: "Timetables", icon: Calendar },
     { id: "pastpapers", label: "Past Papers", icon: FileText },
     { id: "elearning", label: "E-Learning", icon: BookOpen },
     { id: "subscription", label: "Subscription", icon: Calendar },
@@ -101,10 +113,11 @@ export default function LearnerDashboard() {
   const fetchData = async () => {
     setLoading(true);
     
-    const [materialsRes, quizzesRes, announcementsRes] = await Promise.all([
+    const [materialsRes, quizzesRes, announcementsRes, timetablesRes] = await Promise.all([
       supabase.from('learning_materials').select('*').order('created_at', { ascending: false }),
       supabase.from('quizzes').select('*').eq('status', 'published').order('created_at', { ascending: false }),
       supabase.from('announcements').select('*').order('created_at', { ascending: false }).limit(20),
+      supabase.from('timetables').select('*').order('created_at', { ascending: false }),
     ]);
 
     if (materialsRes.data) setMaterials(materialsRes.data);
@@ -114,6 +127,14 @@ export default function LearnerDashboard() {
     }
     
     if (announcementsRes.data) setAnnouncements(announcementsRes.data);
+    
+    if (timetablesRes.data) {
+      setTimetables(
+        timetablesRes.data.filter((t: Timetable) => 
+          t.grade === learnerGrade || t.timetable_type === 'exam'
+        )
+      );
+    }
     setLoading(false);
   };
 
@@ -376,7 +397,36 @@ export default function LearnerDashboard() {
                 </div>
               )}
 
-              {/* Past Papers Tab */}
+              {/* Timetables Tab */}
+              {activeTab === "timetables" && (
+                <div className="space-y-6">
+                  <h2 className="font-heading text-xl font-semibold text-foreground">My Timetables</h2>
+                  {timetables.length > 0 ? (
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {timetables.map((tt) => (
+                        <div key={tt.id} className="glass-card p-4 hover:border-primary/50 transition-colors">
+                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
+                            <Calendar className="w-5 h-5 text-primary" />
+                          </div>
+                          <h4 className="font-medium text-foreground text-sm mb-1">{tt.title}</h4>
+                          <p className="text-xs text-muted-foreground mb-1">{tt.grade} {tt.class ? `• ${tt.class}` : ''}</p>
+                          <p className="text-xs text-muted-foreground mb-3 capitalize">{tt.timetable_type} timetable</p>
+                          <a href={tt.file_url} target="_blank" rel="noopener noreferrer">
+                            <Button variant="outline" size="sm" className="w-full"><Download className="w-4 h-4 mr-2" /> Download</Button>
+                          </a>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="glass-card p-8 text-center">
+                      <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <p className="text-muted-foreground">No timetables available for your grade yet.</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+
               {activeTab === "pastpapers" && (
                 <div className="space-y-6">
                   <h2 className="font-heading text-xl font-semibold text-foreground">Past Papers</h2>

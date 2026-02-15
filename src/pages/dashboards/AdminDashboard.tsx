@@ -518,11 +518,11 @@ export default function AdminDashboard() {
                               </td>
                               <td className="px-4 py-3 text-center">
                                 {reg.payment_proof_url ? (
-                                  <a href={reg.payment_proof_url} target="_blank" rel="noopener noreferrer">
-                                    <CheckCircle className="w-5 h-5 text-primary mx-auto cursor-pointer hover:scale-110 transition-transform" />
+                                  <a href={reg.payment_proof_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1">
+                                    <span className="px-2 py-1 rounded-full text-xs font-bold bg-primary/10 text-primary">PAID</span>
                                   </a>
                                 ) : (
-                                  <Clock className="w-5 h-5 text-accent mx-auto" />
+                                  <span className="px-2 py-1 rounded-full text-xs font-bold bg-accent/10 text-accent">UNPAID</span>
                                 )}
                               </td>
                               <td className="px-4 py-3 text-center">
