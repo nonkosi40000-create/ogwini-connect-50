@@ -25,6 +25,7 @@ interface Registration {
   email: string;
   department_id: string | null;
   phone: string | null;
+  user_id: string | null;
 }
 
 interface Complaint {
@@ -162,7 +163,7 @@ export default function PrincipalDashboard() {
               )}
 
               {activeTab === "staff" && (
-                <StaffManagement registrations={registrations} />
+                <StaffManagement registrations={registrations} onRefresh={fetchData} />
               )}
 
               {activeTab === "ratings" && (
