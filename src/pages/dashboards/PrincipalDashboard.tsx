@@ -20,6 +20,11 @@ interface Registration {
   role: string;
   status: string;
   grade: string | null;
+  first_name: string;
+  last_name: string;
+  email: string;
+  department_id: string | null;
+  phone: string | null;
 }
 
 interface Complaint {
